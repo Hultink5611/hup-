@@ -1,5 +1,12 @@
 # Changelog — Hup!
 
+## v2.2 — Ontdek-tab
+- Nieuwe vierde tab "Ontdek": doorzoekbare (naam/plaats), filterbare en
+  sorteerbare (afstand / prijs / beoordeling) lijst van alle uitjes.
+- Tikken opent de detailkaart; hartje bewaart direct als favoriet.
+- Respecteert de gezinsinstellingen uit het filter-paneel.
+- Service Worker → `hup-v5`.
+
 ## v2.1 — Database uitgebreid naar 109 uitjes
 - 71 extra geverifieerde gezinsuitjes toegevoegd (research juni 2026, met bronnen),
   verdeeld over Zwolle/Kampen/Steenwijkerland, Twente, Salland & Vechtdal en de

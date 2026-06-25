@@ -526,6 +526,67 @@ function ListCard({ a, onOpen, onRemove }) {
   );
 }
 
+/* ----------------------------------------------------- browse / ontdek */
+function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, onOpen, onFav, onFilters }) {
+  const sorts = [["afstand", "Dichtbij"], ["prijs", "Prijs"], ["rating", "Beste"]];
+  return (
+    <div className="px-5 pt-6 fade">
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-2xl font-extrabold tracking-tight flex items-center gap-2"><Icon name="compass" size={24} /> Ontdek</h1>
+        <button onClick={onFilters} className="w-11 h-11 rounded-full bg-white grid place-items-center shadow-card active:scale-95" aria-label="Filters"><Icon name="sliders-horizontal" size={20} stroke={2.4} /></button>
+      </div>
+
+      <div className="mt-4 relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"><Icon name="search" size={18} /></span>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Zoek op naam of plaats…"
+          className="w-full bg-white rounded-2xl shadow-card pl-11 pr-10 py-3.5 font-semibold text-ink placeholder:text-muted/70 outline-none focus:ring-2 focus:ring-teal-400" />
+        {query && <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted" aria-label="Wissen"><Icon name="x" size={18} /></button>}
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-xs font-bold uppercase tracking-wide text-muted mr-1">Sorteer</span>
+        {sorts.map(([v, l]) => (
+          <button key={v} onClick={() => setSort(v)}
+            className={"px-3.5 py-1.5 rounded-full text-sm font-bold transition active:scale-95 " + (sort === v ? "bg-teal-500 text-white shadow-card" : "bg-white text-ink shadow-card")}>{l}</button>
+        ))}
+      </div>
+
+      <p className="mt-3 text-[13px] text-muted font-semibold">
+        {items.length} {items.length === 1 ? "uitje" : "uitjes"} · van {totalAll} in totaal
+        {items.length < totalAll && <button onClick={onFilters} className="text-teal-700 ml-1">· filters aanpassen</button>}
+      </p>
+
+      <div className="mt-3 space-y-3">
+        {items.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-5xl mb-2">🔍</div>
+            <p className="font-display font-extrabold text-lg text-ink">Niks gevonden</p>
+            <p className="text-sm text-muted mt-1">Probeer een andere zoekterm of verruim je filters.</p>
+          </div>
+        ) : items.map((a) => (
+          <div key={a.id} className="rise bg-white rounded-3xl shadow-card overflow-hidden flex">
+            <button onClick={() => onOpen(a)} className="w-20 shrink-0 relative" style={{ background: `linear-gradient(135deg, ${CAT[a.category].g[0]}, ${CAT[a.category].g[1]})` }} aria-label={a.name}>
+              <div className="absolute inset-0 grid place-items-center text-3xl">{a.emoji}</div>
+            </button>
+            <button onClick={() => onOpen(a)} className="flex-1 text-left p-3 min-w-0">
+              <h3 className="font-display font-extrabold text-ink leading-tight text-[15px] truncate">{a.name}</h3>
+              <div className="text-[12px] text-muted font-semibold flex items-center gap-1 mt-0.5"><Icon name="map-pin" size={12} /> {a.plaats} · {a.distance.toFixed(0)} km</div>
+              <div className="mt-1 flex items-center gap-3 text-[12px] font-bold text-ink">
+                <span className="flex items-center gap-1"><Icon name="badge-euro" size={12} className="text-teal-600" /> {euro(a.prijs)}</span>
+                <span className="flex items-center gap-1"><Icon name="clock" size={12} className="text-teal-600" /> {a.duur}</span>
+                <span className="flex items-center gap-1"><Icon name="star" size={12} className="text-amber" /> {a.rating.toFixed(1)}</span>
+              </div>
+            </button>
+            <button onClick={() => onFav(a.id)} className={"px-3 self-stretch grid place-items-center " + (favIds.includes(a.id) ? "text-rose-500" : "text-muted")} aria-label="Bewaar favoriet">
+              <Icon name="heart" size={20} stroke={favIds.includes(a.id) ? 0 : 2.2} className={favIds.includes(a.id) ? "fill-current" : ""} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ----------------------------------------------------- App */
 function App() {
   const [tab, setTab] = useState("home");
@@ -539,6 +600,8 @@ function App() {
   const [preview, setPreview] = useState(null);
   const [empty, setEmpty] = useState(false);
   const [soundOn, setSoundOn] = useState(Sound.enabled);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("afstand");
   const lastId = useRef(null);
 
   useEffect(() => saveJSON(PREFS_KEY, prefs), [prefs]);
@@ -579,6 +642,16 @@ function App() {
     };
     step();
   }, [rolling, candidates, weightedPick]);
+
+  const browse = useMemo(() => {
+    let list = candidates.slice();
+    const q = query.trim().toLowerCase();
+    if (q) list = list.filter((a) => a.name.toLowerCase().includes(q) || a.plaats.toLowerCase().includes(q));
+    list.sort((a, b) =>
+      sort === "prijs" ? a.prijs - b.prijs : sort === "rating" ? b.rating - a.rating : a.distance - b.distance
+    );
+    return list;
+  }, [candidates, query, sort]);
 
   const toggleFav = (id) => setFavIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
   const w = ageWindow(prefs.ages);
@@ -646,6 +719,12 @@ function App() {
         </div>
       )}
 
+      {/* ---------- ONTDEK ---------- */}
+      {tab === "ontdek" && (
+        <BrowseView items={browse} totalAll={ACTIVITIES.length} query={query} setQuery={setQuery} sort={sort} setSort={setSort}
+          favIds={favIds} onOpen={(a) => setDetail(a)} onFav={toggleFav} onFilters={() => setFiltersOpen(true)} />
+      )}
+
       {/* ---------- FAVORITES ---------- */}
       {tab === "favorites" && (
         <div className="px-5 pt-6 fade">
@@ -704,9 +783,9 @@ function App() {
 
       {/* ---------- bottom nav ---------- */}
       <nav className="fixed bottom-0 inset-x-0 z-30">
-        <div className="max-w-md mx-auto bg-white shadow-nav rounded-t-[24px] px-6 py-2.5 flex items-center justify-around" style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
-          {[["home", "home", "Home"], ["favorites", "heart", "Favorieten"], ["profile", "user", "Profiel"]].map(([id, ic, label]) => (
-            <button key={id} onClick={() => setTab(id)} className="flex flex-col items-center gap-1 py-1 px-3 relative">
+        <div className="max-w-md mx-auto bg-white shadow-nav rounded-t-[24px] px-3 py-2.5 flex items-center justify-around" style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
+          {[["home", "home", "Home"], ["ontdek", "compass", "Ontdek"], ["favorites", "heart", "Favorieten"], ["profile", "user", "Profiel"]].map(([id, ic, label]) => (
+            <button key={id} onClick={() => setTab(id)} className="flex flex-col items-center gap-1 py-1 px-2.5 relative">
               <Icon name={ic} size={23} className={tab === id ? "text-teal-600" : "text-muted"} stroke={tab === id ? 2.6 : 2.2} />
               <span className={"text-[11px] font-bold " + (tab === id ? "text-teal-700" : "text-muted")}>{label}</span>
               {id === "favorites" && favIds.length > 0 && (
