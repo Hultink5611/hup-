@@ -1,5 +1,13 @@
 # Changelog — Hup!
 
+## v2.1 — Database uitgebreid naar 109 uitjes
+- 71 extra geverifieerde gezinsuitjes toegevoegd (research juni 2026, met bronnen),
+  verdeeld over Zwolle/Kampen/Steenwijkerland, Twente, Salland & Vechtdal en de
+  populaire grensregio (zuidwest-Drenthe, Noord-Veluwe, Achterhoek-rand).
+- Dubbele vermeldingen ontdubbeld (De Flierefluiter, Dondertman).
+- Het 2–6 gezin komt nu op ~69 matches binnen 75 km (was 25).
+- Service Worker → `hup-v4`.
+
 ## v2 — Redesign + geverifieerde database
 - Volledig nieuw, zacht teal/mint-design (naar mockup): foto-loze hero-cards per
   categorie, bottom-nav (Home / Favorieten / Profiel), detail-"Activiteit kaart"

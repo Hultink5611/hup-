@@ -5,7 +5,7 @@
  *   - Cross-origin CDN assets (React/Tailwind/Babel/Lucide/fonts):
  *     stale-while-revalidate so the app keeps working offline.
  */
-const VERSION = 'hup-v3';
+const VERSION = 'hup-v4';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
