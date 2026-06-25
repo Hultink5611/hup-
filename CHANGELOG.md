@@ -1,5 +1,11 @@
 # Changelog — Hup!
 
+## v2.3 — Volwassenen-modus (0 kinderen)
+- Je kunt nu álle kinderen weghalen (geen verplicht kind meer). Zonder kinderen
+  vervalt het leeftijdsfilter: ideaal voor een uitje met z'n tweeën of met
+  vrienden (bv. een wandeling). Home toont dan "Volwassenen · N matches".
+- Service Worker → `hup-v6`.
+
 ## v2.2 — Ontdek-tab
 - Nieuwe vierde tab "Ontdek": doorzoekbare (naam/plaats), filterbare en
   sorteerbare (afstand / prijs / beoordeling) lijst van alle uitjes.

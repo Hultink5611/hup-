@@ -171,7 +171,7 @@ const ACTIVITIES = [
 
 /* ----------------------------------------------------- leeftijdssync */
 function ageWindow(ages) { return ages.length ? { low: Math.min(...ages), high: Math.max(...ages) } : null; }
-function matchesAges(a, ages) { return ages.every((x) => x >= a.min_age && x <= a.max_age); }
+function matchesAges(a, ages) { return ages.length === 0 ? true : ages.every((x) => x >= a.min_age && x <= a.max_age); }
 function fitScore(a, ages) {
   const w = ageWindow(ages); if (!w) return 0;
   const span = Math.max(1, a.max_age - a.min_age);
@@ -467,16 +467,25 @@ function FiltersSheet({ open, onClose, prefs, setPrefs, count }) {
               <button onClick={addChild} disabled={ages.length >= 6} className="text-sm font-bold text-teal-700 flex items-center gap-1 disabled:opacity-40"><Icon name="plus" size={15} stroke={3} /> Kind</button>
             </div>
             <div className="flex flex-wrap gap-2">
+              {ages.length === 0 && (
+                <div className="text-sm font-semibold text-muted bg-white rounded-full px-4 py-2.5 shadow-card flex items-center gap-2">
+                  <Icon name="users" size={16} className="text-teal-600" /> Zonder kinderen — uitjes voor volwassenen
+                </div>
+              )}
               {ages.map((age, i) => (
                 <div key={i} className="flex items-center gap-2 bg-white rounded-full pl-3 pr-1.5 py-1.5 shadow-card">
                   <button onClick={() => setAge(i, age - 1)} className="w-7 h-7 rounded-full bg-mint grid place-items-center font-black active:scale-90" aria-label="Jonger">−</button>
                   <span className="font-display font-extrabold w-8 text-center tabular-nums">{age}<span className="text-[10px] text-muted">jr</span></span>
                   <button onClick={() => setAge(i, age + 1)} className="w-7 h-7 rounded-full bg-mint grid place-items-center font-black active:scale-90" aria-label="Ouder">+</button>
-                  {ages.length > 1 && <button onClick={() => delChild(i)} className="w-7 h-7 grid place-items-center text-muted hover:text-rose-500" aria-label="Verwijder"><Icon name="x" size={15} stroke={2.6} /></button>}
+                  <button onClick={() => delChild(i)} className="w-7 h-7 grid place-items-center text-muted hover:text-rose-500" aria-label="Verwijder kind"><Icon name="x" size={15} stroke={2.6} /></button>
                 </div>
               ))}
             </div>
-            <p className="text-[12px] text-muted mt-2">We zoeken de overlap zodat het uitje voor iederéén leuk is.</p>
+            <p className="text-[12px] text-muted mt-2">
+              {ages.length === 0
+                ? "Geen leeftijdsfilter — kies bv. via 'Soort uitje' een wandeling of restaurant."
+                : "We zoeken de overlap zodat het uitje voor iederéén leuk is."}
+            </p>
           </section>
 
           {/* Soort uitje */}
@@ -690,7 +699,7 @@ function App() {
               </div>
             </button>
             <p className="mt-7 text-[13px] font-semibold text-muted flex items-center gap-1.5">
-              <Icon name="users" size={14} /> {prefs.ages.length} {prefs.ages.length === 1 ? "kind" : "kinderen"} · overlap {w.low}–{w.high} jr · {candidates.length} {candidates.length === 1 ? "match" : "matches"}
+              <Icon name="users" size={14} /> {prefs.ages.length === 0 ? "Volwassenen" : `${prefs.ages.length} ${prefs.ages.length === 1 ? "kind" : "kinderen"} · overlap ${w.low}–${w.high} jr`} · {candidates.length} {candidates.length === 1 ? "match" : "matches"}
             </p>
           </div>
 
