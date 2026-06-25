@@ -1,5 +1,14 @@
 # Changelog — Hup!
 
+## v2.6 — Ontdek: inline dropdown
+- Kaartjes in Ontdek klappen nu **inline uit** (tik = open) met omschrijving,
+  leeftijd, binnen/buiten en seizoen — zónder naar een vol scherm te springen.
+- Per uitgeklapt uitje: **Route** (kaart), **Info** (web-zoek voor actuele
+  prijzen/openingstijden) en **Kaart** (volledige detailkaart).
+- Hybride aanpak: stabiele info in-app (snel, offline), volatiele data via
+  doorverwijzing naar de officiële site.
+- Service Worker → `hup-v10`.
+
 ## v2.5 — Vertrouwen & locatie
 - **Instelbare startlocatie**: "Gebruik mijn locatie" (GPS) of kies een plaats
   uit de lijst (Profiel). Alle afstanden worden vanaf dáár berekend, niet meer

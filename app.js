@@ -597,6 +597,7 @@ function ListCard({ a, onOpen, onRemove }) {
 /* ----------------------------------------------------- browse / ontdek */
 function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, onOpen, onFav, onFilters }) {
   const sorts = [["afstand", "Dichtbij"], ["prijs", "Prijs"], ["rating", "Beste"]];
+  const [openId, setOpenId] = useState(null);
   return (
     <div className="px-5 pt-6 fade">
       <div className="flex items-center justify-between">
@@ -631,25 +632,53 @@ function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, o
             <p className="font-display font-extrabold text-lg text-ink">Niks gevonden</p>
             <p className="text-sm text-muted mt-1">Probeer een andere zoekterm of verruim je filters.</p>
           </div>
-        ) : items.map((a) => (
-          <div key={a.id} className="rise bg-white rounded-3xl shadow-card overflow-hidden flex">
-            <button onClick={() => onOpen(a)} className="w-20 shrink-0 relative" style={{ background: `linear-gradient(135deg, ${CAT[a.category].g[0]}, ${CAT[a.category].g[1]})` }} aria-label={a.name}>
-              <div className="absolute inset-0 grid place-items-center text-3xl">{a.emoji}</div>
-            </button>
-            <button onClick={() => onOpen(a)} className="flex-1 text-left p-3 min-w-0">
-              <h3 className="font-display font-extrabold text-ink leading-tight text-[15px] truncate">{a.name}</h3>
-              <div className="text-[12px] text-muted font-semibold flex items-center gap-1 mt-0.5"><Icon name="map-pin" size={12} /> {a.plaats} · {a.distance.toFixed(0)} km</div>
-              <div className="mt-1 flex items-center gap-3 text-[12px] font-bold text-ink">
-                <span className="flex items-center gap-1"><Icon name="badge-euro" size={12} className="text-teal-600" /> {euro(a.prijs)}</span>
-                <span className="flex items-center gap-1"><Icon name="clock" size={12} className="text-teal-600" /> {a.duur}</span>
-                <span className="flex items-center gap-1"><Icon name="star" size={12} className="text-amber" /> {a.rating.toFixed(1)}</span>
+        ) : items.map((a) => {
+          const open = openId === a.id;
+          const se = seasonInfo(a);
+          return (
+          <div key={a.id} className="rise bg-white rounded-3xl shadow-card overflow-hidden">
+            <div className="flex">
+              <button onClick={() => onOpen(a)} className="w-20 shrink-0 relative" style={{ background: `linear-gradient(135deg, ${CAT[a.category].g[0]}, ${CAT[a.category].g[1]})` }} aria-label={"Open " + a.name}>
+                <div className="absolute inset-0 grid place-items-center text-3xl">{a.emoji}</div>
+              </button>
+              <button onClick={() => setOpenId(open ? null : a.id)} className="flex-1 text-left p-3 min-w-0" aria-expanded={open}>
+                <h3 className="font-display font-extrabold text-ink leading-tight text-[15px] truncate">{a.name}</h3>
+                <div className="text-[12px] text-muted font-semibold flex items-center gap-1 mt-0.5"><Icon name="map-pin" size={12} /> {a.plaats} · {a.distance.toFixed(0)} km</div>
+                <div className="mt-1 flex items-center gap-3 text-[12px] font-bold text-ink">
+                  <span className="flex items-center gap-1"><Icon name="badge-euro" size={12} className="text-teal-600" /> {euro(a.prijs)}</span>
+                  <span className="flex items-center gap-1"><Icon name="clock" size={12} className="text-teal-600" /> {a.duur}</span>
+                  <span className="flex items-center gap-1"><Icon name="star" size={12} className="text-amber" /> {a.rating.toFixed(1)}</span>
+                </div>
+              </button>
+              <div className="flex flex-col items-center justify-center gap-1.5 pr-3">
+                <button onClick={() => onFav(a.id)} className={favIds.includes(a.id) ? "text-rose-500" : "text-muted"} aria-label="Bewaar favoriet">
+                  <Icon name="heart" size={20} stroke={favIds.includes(a.id) ? 0 : 2.2} className={favIds.includes(a.id) ? "fill-current" : ""} />
+                </button>
+                <button onClick={() => setOpenId(open ? null : a.id)} className="text-muted" aria-label={open ? "Inklappen" : "Meer info"}>
+                  <span style={{ display: "inline-flex", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}><Icon name="chevron-down" size={20} /></span>
+                </button>
               </div>
-            </button>
-            <button onClick={() => onFav(a.id)} className={"px-3 self-stretch grid place-items-center " + (favIds.includes(a.id) ? "text-rose-500" : "text-muted")} aria-label="Bewaar favoriet">
-              <Icon name="heart" size={20} stroke={favIds.includes(a.id) ? 0 : 2.2} className={favIds.includes(a.id) ? "fill-current" : ""} />
-            </button>
+            </div>
+
+            {open && (
+              <div className="px-4 pb-4 pt-1 border-t border-line">
+                <p className="text-[14px] leading-relaxed text-ink/80 mt-3">{a.desc}</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-[12px] font-bold">
+                  <span className="inline-flex items-center gap-1 bg-mint rounded-full px-2.5 py-1 text-ink"><Icon name="users" size={12} className="text-teal-600" /> {a.min_age}–{a.max_age} jr</span>
+                  <span className="inline-flex items-center gap-1 bg-mint rounded-full px-2.5 py-1 text-ink"><Icon name={a.indoor_friendly ? "home" : "sun"} size={12} className="text-teal-600" /> {a.indoor_friendly ? "Binnen" : "Buiten"}</span>
+                  <span className="inline-flex items-center gap-1 bg-mint rounded-full px-2.5 py-1 text-ink"><Icon name="calendar" size={12} className="text-teal-600" /> {se.label}</span>
+                  {se.seasonal && !se.open && <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1" style={{ background: "#FEF3C7", color: "#B45309" }}><Icon name="alert-triangle" size={12} /> Mogelijk gesloten</span>}
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <a href={mapsUrl(a)} target="_blank" rel="noopener" className="inline-flex items-center justify-center gap-1.5 bg-teal-500 text-white font-bold text-[13px] py-2.5 rounded-xl active:scale-95"><Icon name="navigation" size={15} stroke={2.4} /> Route</a>
+                  <a href={searchUrl(a)} target="_blank" rel="noopener" className="inline-flex items-center justify-center gap-1.5 bg-mint text-teal-700 font-bold text-[13px] py-2.5 rounded-xl active:scale-95"><Icon name="search" size={15} stroke={2.4} /> Info</a>
+                  <button onClick={() => onOpen(a)} className="inline-flex items-center justify-center gap-1.5 bg-white text-ink font-bold text-[13px] py-2.5 rounded-xl border border-line active:scale-95"><Icon name="maximize-2" size={15} stroke={2.4} /> Kaart</button>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
