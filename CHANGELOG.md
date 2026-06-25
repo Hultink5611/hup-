@@ -1,5 +1,15 @@
 # Changelog — Hup!
 
+## v2.8 — Delen & groeien
+- **Deelbare links**: deel een uitje via WhatsApp/socials (Web Share API, met
+  clipboard-fallback). Een gedeelde link (`?a=<id>`) opent meteen dat uitje.
+- **"Deel Hup! met vrienden"** in Profiel — de virale lus.
+- **Social previews** (Open Graph / Twitter cards) + banner `og.svg`, zodat een
+  gedeelde link een nette kaart toont.
+- **Feedback-kanaal**: "Tip een uitje" en "Klopt iets niet?" (mailto) — de
+  data-flywheel waarmee gebruikers de database helpen verbeteren.
+- Service Worker → `hup-v12`.
+
 ## v2.7 — Voor elk gezelschap: "Met wie?" + 115 nieuwe uitjes
 - **"Met wie?"-modus** (Gezin / Partner / Vrienden / Opa & oma / Alleen) op Home
   en in de filters. Stuurt welke uitjes naar voren komen: gezin gebruikt

@@ -8,7 +8,7 @@
  *   - Cross-origin CDN's (React/Tailwind/Babel/Lucide/fonts):
  *     stale-while-revalidate, zodat offline blijft werken.
  */
-const VERSION = 'hup-v11';
+const VERSION = 'hup-v12';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -19,6 +19,7 @@ const SHELL_ASSETS = [
   './manifest.json',
   './icon.svg',
   './icon-maskable.svg',
+  './og.svg',
 ];
 
 // Same-origin paden die ALTIJD network-first moeten (de levende app-code).

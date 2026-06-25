@@ -105,6 +105,33 @@ function seasonInfo(a) {
 }
 function searchUrl(a) { return "https://www.google.com/search?q=" + encodeURIComponent(a.name + " " + a.plaats); }
 
+const CONTACT = "markhultink@live.com";
+function appUrl() { return location.origin + location.pathname; }
+function activityLink(a) { return appUrl() + "?a=" + a.id; }
+function shareActivity(a) {
+  const url = activityLink(a);
+  const text = `${a.emoji} ${a.name} in ${a.plaats} — ${euro(a.prijs)} · ${a.duur}. Zin om te gaan? 🎉 Gevonden met Hup!`;
+  vibrate(10);
+  if (navigator.share) { navigator.share({ title: "Hup! · " + a.name, text, url }).catch(() => {}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(text + "\n" + url).then(() => alert("Link gekopieerd — plak 'm in een berichtje!")); }
+  else { window.prompt("Kopieer de link:", url); }
+}
+function shareApp() {
+  const url = appUrl();
+  const text = "Geen inspiratie voor een uitje? Met Hup! tik je en krijg je meteen een passend uitje. 🎉";
+  if (navigator.share) { navigator.share({ title: "Hup! — Spontane Uitjes", text, url }).catch(() => {}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(text + "\n" + url).then(() => alert("Link gekopieerd!")); }
+  else { window.prompt("Kopieer de link:", url); }
+}
+function tipMail() {
+  location.href = "mailto:" + CONTACT + "?subject=" + encodeURIComponent("Hup! — tip voor een uitje") +
+    "&body=" + encodeURIComponent("Ik mis dit uitje in Hup!:\n\nNaam:\nPlaats:\nWaarom leuk:\nWebsite:\n");
+}
+function reportMail(a) {
+  location.href = "mailto:" + CONTACT + "?subject=" + encodeURIComponent("Hup! — melding: " + a.name) +
+    "&body=" + encodeURIComponent("Er klopt iets niet bij '" + a.name + "' (" + a.plaats + "):\n\n");
+}
+
 /* ---------------------------------------------------------------- database
  * Velden: min_age, max_age, prijs(€/p.p. indicatief), indoor_friendly,
  * lat/lng, duur, rating(indicatief), emoji, desc. Startlocatie Hardenberg.
@@ -512,10 +539,16 @@ function DetailView({ a, isFav, onFav, onBack, onNext }) {
           <Icon name="chevron-left" size={24} stroke={2.6} />
         </button>
         <h1 className="font-display font-extrabold tracking-tight text-ink">Activiteit</h1>
-        <button onClick={onFav} aria-pressed={isFav} aria-label="Bewaar favoriet"
-          className={"w-11 h-11 grid place-items-center rounded-full shadow-card active:scale-95 transition " + (isFav ? "bg-rose-500 text-white" : "bg-white text-ink")}>
-          <Icon name="heart" size={22} stroke={isFav ? 0 : 2.4} className={isFav ? "fill-current" : ""} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => shareActivity(a)} aria-label="Delen"
+            className="w-11 h-11 grid place-items-center rounded-full bg-white text-ink shadow-card active:scale-95 transition">
+            <Icon name="share-2" size={20} stroke={2.4} />
+          </button>
+          <button onClick={onFav} aria-pressed={isFav} aria-label="Bewaar favoriet"
+            className={"w-11 h-11 grid place-items-center rounded-full shadow-card active:scale-95 transition " + (isFav ? "bg-rose-500 text-white" : "bg-white text-ink")}>
+            <Icon name="heart" size={22} stroke={isFav ? 0 : 2.4} className={isFav ? "fill-current" : ""} />
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-32">
@@ -558,6 +591,11 @@ function DetailView({ a, isFav, onFav, onBack, onNext }) {
               <Icon name="search" size={18} stroke={2.4} /> Check openingstijden & actuele info
             </a>
           </div>
+        </div>
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <button onClick={() => shareActivity(a)} className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700"><Icon name="share-2" size={15} stroke={2.4} /> Deel dit uitje</button>
+          <span className="text-muted/40">·</span>
+          <button onClick={() => reportMail(a)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted"><Icon name="flag" size={14} /> Klopt iets niet?</button>
         </div>
         <p className="text-center text-[11px] text-muted/80 mt-3">Prijs, duur, seizoen en beoordeling zijn indicatief — check de website.</p>
       </div>
@@ -857,6 +895,15 @@ function App() {
 
   const origin = prefs.origin || HARDENBERG;
   const withMeta = (a) => ({ ...a, distance: haversine(origin.lat, origin.lng, a.lat, a.lng) });
+
+  // Gedeelde link ?a=<id> opent meteen dat uitje.
+  useEffect(() => {
+    const p = new URLSearchParams(location.search).get("a");
+    if (p) {
+      const found = ACTIVITIES.find((x) => String(x.id) === p);
+      if (found) setDetail(withMeta(found));
+    }
+  }, []); // eslint-disable-line
   const useMyLocation = () => {
     if (!navigator.geolocation) { alert("Locatie is niet beschikbaar op dit apparaat."); return; }
     navigator.geolocation.getCurrentPosition(
@@ -1059,6 +1106,17 @@ function App() {
             <button onClick={() => { if (confirm("Alle favorieten verwijderen?")) setFavIds([]); }} className="w-full flex items-center justify-between px-5 py-4">
               <span className="font-bold text-ink flex items-center gap-3"><Icon name="trash-2" size={20} className="text-teal-600" /> Favorieten wissen</span>
               <span className="text-sm text-muted font-bold">{favIds.length}</span>
+            </button>
+          </div>
+
+          <button onClick={shareApp} className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-teal-500 text-white font-display font-extrabold py-4 rounded-3xl shadow-card active:scale-[.98] transition">
+            <Icon name="share-2" size={20} stroke={2.5} /> Deel Hup! met vrienden
+          </button>
+
+          <div className="mt-4 bg-white rounded-3xl shadow-card divide-y divide-line">
+            <button onClick={tipMail} className="w-full flex items-center justify-between px-5 py-4">
+              <span className="font-bold text-ink flex items-center gap-3"><Icon name="lightbulb" size={20} className="text-teal-600" /> Tip een uitje</span>
+              <Icon name="chevron-right" size={20} className="text-muted" />
             </button>
           </div>
 
