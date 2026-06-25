@@ -136,11 +136,20 @@
     })();
   </script>
 
-  <!-- Service worker -->
+  <!-- Service worker (met zelfherstel: herlaad zodra een nieuwe SW het overneemt) -->
   <script>
     if ('serviceWorker' in navigator) {
+      var __hupRefreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (__hupRefreshing) return;
+        __hupRefreshing = true;
+        window.location.reload();
+      });
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('./sw.js').catch(function (err) {
+        navigator.serviceWorker.register('./sw.js').then(function (reg) {
+          // Check meteen op een nieuwere versie.
+          reg.update().catch(function () {});
+        }).catch(function (err) {
           console.warn('SW registratie mislukt:', err);
         });
       });

@@ -1,5 +1,15 @@
 # Changelog — Hup!
 
+## v2.4 — Bugfix: app bleef leeg door oude cache
+- **Root cause:** de service worker serveerde `app.js` cache-first. Wie ooit een
+  oude/kapotte versie in cache had (o.a. de korte kapotte eerste deploy), bleef
+  daarop hangen — witte/lege pagina, ook na herladen.
+- **Fix:** kern-bestanden (`index.html`, `app.js`) nu **network-first** — verse
+  code wint altijd online, cache is enkel offline-fallback. Plus auto-herstel:
+  de pagina herlaadt één keer zodra een nieuwe service worker het overneemt.
+- `install` gebruikt nu best-effort caching (één mislukte asset blokkeert de
+  update niet meer). Service Worker → `hup-v8`.
+
 ## v2.3 — Volwassenen-modus (0 kinderen)
 - Je kunt nu álle kinderen weghalen (geen verplicht kind meer). Zonder kinderen
   vervalt het leeftijdsfilter: ideaal voor een uitje met z'n tweeën of met

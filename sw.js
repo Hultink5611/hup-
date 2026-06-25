@@ -1,11 +1,14 @@
 /* Hup! — Service Worker
- * App-shell caching + offline support.
- * Strategy:
- *   - Same-origin app shell: cache-first, fall back to network.
- *   - Cross-origin CDN assets (React/Tailwind/Babel/Lucide/fonts):
- *     stale-while-revalidate so the app keeps working offline.
+ * Strategy (belangrijk voor zelfherstel bij updates):
+ *   - Navigatie (HTML) en de kern-app (app.js): NETWORK-FIRST.
+ *     Verse code wint altijd zolang er internet is; de cache is enkel
+ *     een offline-fallback. Zo kan een oude/kapotte gecachte app.js de
+ *     gebruiker NOOIT permanent blokkeren.
+ *   - Overige same-origin assets (manifest, icons): cache-first.
+ *   - Cross-origin CDN's (React/Tailwind/Babel/Lucide/fonts):
+ *     stale-while-revalidate, zodat offline blijft werken.
  */
-const VERSION = 'hup-v7';
+const VERSION = 'hup-v8';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -18,10 +21,14 @@ const SHELL_ASSETS = [
   './icon-maskable.svg',
 ];
 
+// Same-origin paden die ALTIJD network-first moeten (de levende app-code).
+const CORE = ['/', '/index.html', '/app.js', '/sw.js'];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
+      // addAll faalt als één asset mislukt → val terug op best-effort per asset.
+      .then((cache) => Promise.allSettled(SHELL_ASSETS.map((a) => cache.add(a))))
       .then(() => self.skipWaiting())
   );
 });
@@ -29,12 +36,22 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))
-      ))
+      .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
+
+function networkFirst(request) {
+  return fetch(request)
+    .then((resp) => {
+      if (resp && (resp.ok || resp.type === 'opaqueredirect')) {
+        const copy = resp.clone();
+        caches.open(SHELL_CACHE).then((c) => c.put(request, copy));
+      }
+      return resp;
+    })
+    .catch(() => caches.match(request).then((c) => c || caches.match('./index.html')));
+}
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -43,20 +60,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   const sameOrigin = url.origin === self.location.origin;
 
-  // Navigation requests: serve cached shell when offline.
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
+  // Navigaties en kern-app: network-first.
+  if (request.mode === 'navigate') { event.respondWith(networkFirst(request)); return; }
 
   if (sameOrigin) {
-    // App shell: cache-first.
+    const path = url.pathname.replace(/\/hup-\//, '/'); // pad t.o.v. app-root
+    const isCore = CORE.some((p) => path === p || path.endsWith('/app.js') || path.endsWith('/sw.js') || path.endsWith('/index.html'));
+    if (isCore) { event.respondWith(networkFirst(request)); return; }
+
+    // Overige same-origin: cache-first (manifest, icons).
     event.respondWith(
       caches.match(request).then((cached) =>
-        cached ||
-        fetch(request).then((resp) => {
+        cached || fetch(request).then((resp) => {
           const copy = resp.clone();
           caches.open(SHELL_CACHE).then((c) => c.put(request, copy));
           return resp;
@@ -66,17 +81,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cross-origin (CDNs, fonts): stale-while-revalidate.
+  // Cross-origin CDN's: stale-while-revalidate.
   event.respondWith(
     caches.open(RUNTIME_CACHE).then((cache) =>
       cache.match(request).then((cached) => {
         const network = fetch(request)
-          .then((resp) => {
-            if (resp && (resp.ok || resp.type === 'opaque')) {
-              cache.put(request, resp.clone());
-            }
-            return resp;
-          })
+          .then((resp) => { if (resp && (resp.ok || resp.type === 'opaque')) cache.put(request, resp.clone()); return resp; })
           .catch(() => cached);
         return cached || network;
       })
