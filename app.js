@@ -42,30 +42,61 @@ const euro = (n) => (n === 0 ? "Gratis" : "€" + n);
  * De database — Nederlandse gezinsuitjes rond Hardenberg (en breder)
  * -------------------------------------------------------------------- */
 const ACTIVITIES = [
-  { id: 1,  name: "Kinderboerderij De Klimboom", plaats: "Hardenberg",   category: "dieren",     min_age: 0,  max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5750, lng: 6.6010, emoji: "🐐", desc: "Knuffelen met geiten, konijnen en kippen — vlakbij het centrum." },
-  { id: 2,  name: "Zwembad De Marsch",            plaats: "Hardenberg",   category: "water",      min_age: 0,  max_age: 99, prijs: 7,  indoor_friendly: true,  lat: 52.5705, lng: 6.6125, emoji: "🏊", desc: "Subtropisch zwemparadijs met glijbaan en peuterbad." },
-  { id: 3,  name: "Speelpark De Vechtstreek",     plaats: "Hardenberg",   category: "speeltuin",  min_age: 2,  max_age: 12, prijs: 12, indoor_friendly: false, lat: 52.5810, lng: 6.6240, emoji: "🎠", desc: "Buitenspeelpark met trampolines, kabelbaan en waterspeeltuin." },
-  { id: 4,  name: "Strandbad De Oldemeyer",       plaats: "Slagharen",    category: "water",      min_age: 0,  max_age: 99, prijs: 5,  indoor_friendly: false, lat: 52.6020, lng: 6.6780, emoji: "🏖️", desc: "Natuurstrand aan een meertje met ondiep water en speeltoestellen." },
-  { id: 5,  name: "Pannenkoekenboerderij",        plaats: "Gramsbergen",  category: "eten",       min_age: 0,  max_age: 99, prijs: 15, indoor_friendly: true,  lat: 52.6230, lng: 6.6510, emoji: "🥞", desc: "Onbeperkt pannenkoeken met binnen- en buitenspeelhoek." },
-  { id: 6,  name: "Speeltuin Bosrand",            plaats: "Dedemsvaart",  category: "speeltuin",  min_age: 1,  max_age: 10, prijs: 0,  indoor_friendly: false, lat: 52.6005, lng: 6.4520, emoji: "🛝", desc: "Gratis buurtspeeltuin met zandbak, schommels en klimrek." },
-  { id: 7,  name: "Speelboerderij De Hofstee",    plaats: "Ommen",        category: "speeltuin",  min_age: 1,  max_age: 10, prijs: 9,  indoor_friendly: false, lat: 52.5200, lng: 6.4200, emoji: "🚜", desc: "Boerderijspeeltuin met dieren, skelters en stro-hooiberg." },
-  { id: 8,  name: "Monkey Town",                  plaats: "Coevorden",    category: "binnenpret", min_age: 1,  max_age: 11, prijs: 9,  indoor_friendly: true,  lat: 52.6600, lng: 6.7400, emoji: "🐵", desc: "Grote overdekte speelhal met ballenbak en klimtoestellen." },
-  { id: 9,  name: "Ballorig Indoor Speelparadijs",plaats: "Zwolle",       category: "binnenpret", min_age: 1,  max_age: 11, prijs: 10, indoor_friendly: true,  lat: 52.5168, lng: 6.0830, emoji: "🎈", desc: "Indoor speelparadijs met glijbanen, trampolines en air-track." },
-  { id: 10, name: "Ecodrome Natuurpad",           plaats: "Zwolle",       category: "natuur",     min_age: 2,  max_age: 12, prijs: 8,  indoor_friendly: false, lat: 52.5210, lng: 6.0610, emoji: "🌿", desc: "Blotevoetenpad en ontdekroute door de natuur." },
-  { id: 11, name: "WILDLANDS Adventure Zoo",      plaats: "Emmen",        category: "dieren",     min_age: 0,  max_age: 99, prijs: 24, indoor_friendly: true,  lat: 52.7850, lng: 6.8970, emoji: "🐘", desc: "Belevenis-dierentuin met jungle, savanne en poolwereld." },
-  { id: 12, name: "Sprookjeshof",                 plaats: "Zuidlaren",    category: "speeltuin",  min_age: 2,  max_age: 10, prijs: 13, indoor_friendly: false, lat: 53.1000, lng: 6.6800, emoji: "🏰", desc: "Sprookjespark met speeltuin, dieren en attracties." },
-  { id: 13, name: "Avonturenpark Hellendoorn",    plaats: "Hellendoorn",  category: "avontuur",   min_age: 3,  max_age: 99, prijs: 29, indoor_friendly: false, lat: 52.3900, lng: 6.4600, emoji: "🎢", desc: "Attractiepark met achtbanen, dwaaltuin en waterattracties." },
-  { id: 14, name: "Nationaal Park Dwingelderveld",plaats: "Ruinen",       category: "natuur",     min_age: 0,  max_age: 99, prijs: 0,  indoor_friendly: false, lat: 52.8100, lng: 6.4000, emoji: "🌾", desc: "Het grootste natte heideveld van Europa — wandelen & speurtochten." },
-  { id: 15, name: "Drents Museum (kinderroute)",  plaats: "Assen",        category: "museum",     min_age: 4,  max_age: 99, prijs: 13, indoor_friendly: true,  lat: 52.9950, lng: 6.5630, emoji: "🏛️", desc: "Kindvriendelijke museumroute langs ridders en archeologie." },
-  { id: 16, name: "Boomkroonpad Drouwen",         plaats: "Drouwen",      category: "natuur",     min_age: 4,  max_age: 99, prijs: 12, indoor_friendly: false, lat: 52.9600, lng: 6.7800, emoji: "🌳", desc: "Wandel hoog tussen de boomtoppen — 22 meter boven de grond." },
-  { id: 17, name: "Klimbos Hardenberg",           plaats: "Hardenberg",   category: "avontuur",   min_age: 6,  max_age: 99, prijs: 18, indoor_friendly: false, lat: 52.5905, lng: 6.6505, emoji: "🧗", desc: "Klimparcours en tokkelbanen door de boomtoppen." },
-  { id: 18, name: "Bowlen & Lasergamen",          plaats: "Hardenberg",   category: "binnenpret", min_age: 6,  max_age: 99, prijs: 14, indoor_friendly: true,  lat: 52.5790, lng: 6.6135, emoji: "🎳", desc: "Bowlingbanen en arena-lasergame voor de hele familie." },
-  { id: 19, name: "Museumfabriek",                plaats: "Enschede",     category: "museum",     min_age: 4,  max_age: 99, prijs: 15, indoor_friendly: true,  lat: 52.2200, lng: 6.8900, emoji: "🦣", desc: "Doe-museum met natuur, techniek en een echt mammoetskelet." },
-  { id: 20, name: "Klimhal Bjoeks",               plaats: "Groningen",    category: "avontuur",   min_age: 6,  max_age: 99, prijs: 16, indoor_friendly: true,  lat: 53.2100, lng: 6.5600, emoji: "🧗‍♀️", desc: "Grote indoor klimhal met routes voor beginners en gevorderden." },
-  { id: 21, name: "Kameleondorp",                 plaats: "Terherne",     category: "avontuur",   min_age: 2,  max_age: 12, prijs: 15, indoor_friendly: false, lat: 53.0200, lng: 5.7800, emoji: "⛵", desc: "Beleef de avonturen van Hielke en Sietse in het echte Kameleondorp." },
-  { id: 22, name: "Speelbos & Blotevoetenpad",    plaats: "Ommen",        category: "natuur",     min_age: 1,  max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5260, lng: 6.4350, emoji: "🐾", desc: "Gratis speelbos met hutten bouwen, modder en een speurtocht." },
-  { id: 23, name: "Indoor Karting",               plaats: "Zwolle",       category: "binnenpret", min_age: 6,  max_age: 99, prijs: 22, indoor_friendly: true,  lat: 52.5080, lng: 6.0550, emoji: "🏎️", desc: "Elektrisch karten op een overdekt circuit." },
-  { id: 24, name: "De Koemarkt Speeltuin",        plaats: "Hardenberg",   category: "speeltuin",  min_age: 0,  max_age: 9,  prijs: 0,  indoor_friendly: false, lat: 52.5742, lng: 6.6180, emoji: "🎪", desc: "Centrale speeltuin met waterpomp, glijbaan en picknickbankjes." },
+  // — Hardenberg & noordoost-Overijssel —
+  { id: 1,  name: "Kinderboerderij De Klimboom",  plaats: "Hardenberg",   category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5750, lng: 6.6010, emoji: "🐐", desc: "Knuffelen met geiten, konijnen en kippen — vlakbij het centrum." },
+  { id: 2,  name: "Zwembad De Marsch",            plaats: "Hardenberg",   category: "water",      min_age: 0, max_age: 99, prijs: 7,  indoor_friendly: true,  lat: 52.5705, lng: 6.6125, emoji: "🏊", desc: "Overdekt zwembad met glijbaan en peuterbad." },
+  { id: 3,  name: "Knof de Pad kinderwandelroute",plaats: "Hardenberg",   category: "natuur",     min_age: 2, max_age: 10, prijs: 0,  indoor_friendly: false, lat: 52.5760, lng: 6.6300, emoji: "🐾", desc: "Speurroute met opdrachten door bos en langs de Vecht." },
+  { id: 4,  name: "Pannenkoekenboerderij",        plaats: "Gramsbergen",  category: "eten",       min_age: 0, max_age: 99, prijs: 15, indoor_friendly: true,  lat: 52.6230, lng: 6.6510, emoji: "🥞", desc: "Onbeperkt pannenkoeken met binnen- en buitenspeelhoek." },
+  { id: 5,  name: "Attractiepark Slagharen",      plaats: "Slagharen",    category: "avontuur",   min_age: 3, max_age: 99, prijs: 26, indoor_friendly: false, lat: 52.6175, lng: 6.5300, emoji: "🎢", desc: "Western-attractiepark met achtbanen, ponyshow en waterpret." },
+  { id: 6,  name: "Kinderboerderij Dekibo",       plaats: "Dedemsvaart",  category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5980, lng: 6.4600, emoji: "🐓", desc: "Gratis kinderboerderij met boerderijdieren en speelveld." },
+  { id: 7,  name: "Speel- & Kinderboerderij Hoeve Bosman", plaats: "De Krim", category: "dieren", min_age: 1, max_age: 12, prijs: 8, indoor_friendly: false, lat: 52.6600, lng: 6.5950, emoji: "🐄", desc: "Boerderijbeleving met dieren, speeltuin en skelterbaan." },
+
+  // — Ommen, Dalfsen & Salland —
+  { id: 8,  name: "Speelbos & Blotevoetenpad",    plaats: "Ommen",        category: "natuur",     min_age: 1, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5260, lng: 6.4350, emoji: "🌲", desc: "Hutten bouwen, modderen en een blotevoetenpad in het bos." },
+  { id: 9,  name: "Speelpark De Flierefluiter",   plaats: "Raalte",       category: "speeltuin",  min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: true,  lat: 52.4300, lng: 6.2400, emoji: "🎠", desc: "Binnen- én buitenspeeltuin met overdekte kinderboerderij." },
+
+  // — Zwolle & omgeving —
+  { id: 10, name: "Djambo Kidsplay",              plaats: "Zwolle",       category: "binnenpret", min_age: 1, max_age: 11, prijs: 9,  indoor_friendly: true,  lat: 52.5168, lng: 6.0830, emoji: "🎈", desc: "Grote indoor speelhal met glijbanen, klimtoestellen en air-track." },
+  { id: 11, name: "Dinoland Zwolle",              plaats: "Zwolle",       category: "avontuur",   min_age: 3, max_age: 12, prijs: 13, indoor_friendly: false, lat: 52.4900, lng: 6.0700, emoji: "🦕", desc: "Dinopark met levensechte dino's, fossielen zoeken en speeltuin." },
+  { id: 12, name: "Nederlands Bakkerijmuseum",    plaats: "Hattem",       category: "museum",     min_age: 4, max_age: 99, prijs: 9,  indoor_friendly: true,  lat: 52.4750, lng: 6.0630, emoji: "🥨", desc: "Zelf koekjes bakken in een levend bakkerijmuseum." },
+
+  // — Deventer —
+  { id: 13, name: "Kinderboerderij De Ulebelt",   plaats: "Deventer",     category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.2550, lng: 6.1800, emoji: "🐑", desc: "Gratis kinderboerderij en natuurtuin met blote-voetenpad." },
+  { id: 14, name: "Speelgoedmuseum Deventer",     plaats: "Deventer",     category: "museum",     min_age: 2, max_age: 12, prijs: 9,  indoor_friendly: true,  lat: 52.2520, lng: 6.1600, emoji: "🧸", desc: "Historisch speelgoed plus een grote doe-speelzolder." },
+
+  // — Sallandse Heuvelrug: Nijverdal, Hellendoorn, Holten —
+  { id: 15, name: "Avonturenpark Hellendoorn",    plaats: "Hellendoorn",  category: "avontuur",   min_age: 3, max_age: 99, prijs: 29, indoor_friendly: false, lat: 52.3850, lng: 6.4670, emoji: "🎢", desc: "Attractiepark met achtbanen, dwaaltuin en waterattracties." },
+  { id: 16, name: "Aquaventura Slidepark",        plaats: "Hellendoorn",  category: "water",      min_age: 4, max_age: 99, prijs: 13, indoor_friendly: true,  lat: 52.3900, lng: 6.4600, emoji: "🌊", desc: "Glijbanenparadijs met binnen- en buitenbaden." },
+  { id: 17, name: "Speelbos Sallandse Heuvelrug", plaats: "Nijverdal",    category: "natuur",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.3450, lng: 6.4300, emoji: "🌳", desc: "Twee kilometer hutten bouwen, klimmen en slingeren in het bos." },
+  { id: 18, name: "Kartplaza Actionworld",        plaats: "Nijverdal",    category: "binnenpret", min_age: 6, max_age: 99, prijs: 20, indoor_friendly: true,  lat: 52.3650, lng: 6.4600, emoji: "🏎️", desc: "Indoor kartbaan, lasergamen en speelhal onder één dak." },
+  { id: 19, name: "Natuurmuseum Holterberg",      plaats: "Holten",       category: "museum",     min_age: 3, max_age: 99, prijs: 10, indoor_friendly: true,  lat: 52.2880, lng: 6.4250, emoji: "🦌", desc: "Meer dan duizend dieren in levensechte diorama's." },
+  { id: 20, name: "Speelboerderij Dondertman",    plaats: "Holten",       category: "speeltuin",  min_age: 1, max_age: 12, prijs: 11, indoor_friendly: true,  lat: 52.2900, lng: 6.4300, emoji: "🐮", desc: "Binnen- en buitenspeeltuin met dieren en pannenkoeken." },
+
+  // — Twente: Enschede, Hengelo, Almelo, Borne, Oldenzaal —
+  { id: 21, name: "De Museumfabriek",             plaats: "Enschede",     category: "museum",     min_age: 4, max_age: 99, prijs: 15, indoor_friendly: true,  lat: 52.2200, lng: 6.8900, emoji: "🦣", desc: "Doe-museum met natuur, techniek en een echt mammoetskelet." },
+  { id: 22, name: "Avontura Speelparadijs",       plaats: "Enschede",     category: "binnenpret", min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: true,  lat: 52.2220, lng: 6.8950, emoji: "🐵", desc: "Overdekt speelparadijs met klimtoestellen en ballenbak." },
+  { id: 23, name: "Kinderboerderij De Wesseler",  plaats: "Enschede",     category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.2050, lng: 6.8800, emoji: "🐰", desc: "Gratis stadskinderboerderij met knuffeldieren en speeltuin." },
+  { id: 24, name: "Attractiepark De Waarbeek",    plaats: "Hengelo",      category: "avontuur",   min_age: 2, max_age: 99, prijs: 19, indoor_friendly: false, lat: 52.2700, lng: 6.7800, emoji: "🎡", desc: "Nostalgisch familiepark met all-in formule en oude achtbaan." },
+  { id: 25, name: "Jump XL Trampolinepark",       plaats: "Hengelo",      category: "avontuur",   min_age: 4, max_age: 99, prijs: 13, indoor_friendly: true,  lat: 52.2650, lng: 6.7930, emoji: "🤸", desc: "Reusachtig trampolinepark met twister, trapeze en foam pit." },
+  { id: 26, name: "Monkey Town Almelo",           plaats: "Almelo",       category: "binnenpret", min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: true,  lat: 52.3570, lng: 6.6680, emoji: "🙈", desc: "Grote overdekte speelhal met ballenbak en klimtoestellen." },
+  { id: 27, name: "Kids City Overijssel",         plaats: "Borne",        category: "binnenpret", min_age: 1, max_age: 12, prijs: 9,  indoor_friendly: true,  lat: 52.3000, lng: 6.7520, emoji: "🏰", desc: "Indoor speelstad met thema-werelden en grote glijbanen." },
+  { id: 28, name: "Klein Afrika",                 plaats: "Oldenzaal",    category: "dieren",     min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: false, lat: 52.3130, lng: 6.9280, emoji: "🦒", desc: "Speeltuin, dierentuin én pannenkoekenrestaurant in één." },
+  { id: 29, name: "Outdoor Challenge Park",       plaats: "Oldenzaal",    category: "avontuur",   min_age: 6, max_age: 99, prijs: 15, indoor_friendly: false, lat: 52.3200, lng: 6.9400, emoji: "🧗", desc: "Klim-, kano- en survivalbaan in de Twentse natuur." },
+  { id: 30, name: "Klimbos AvaTarz",              plaats: "Deurningen",   category: "avontuur",   min_age: 6, max_age: 99, prijs: 22, indoor_friendly: false, lat: 52.3000, lng: 6.8600, emoji: "🌳", desc: "Klimparcours en tokkelbanen tot hoog in de bomen." },
+  { id: 31, name: "Het Groot Twentsch Maisdoolhof",plaats:"Fleringen",    category: "natuur",     min_age: 4, max_age: 99, prijs: 8,  indoor_friendly: false, lat: 52.3550, lng: 6.7600, emoji: "🌽", desc: "Verdwalen in een gigantisch maïsdoolhof met speelweide." },
+  { id: 32, name: "Bike-Fun Park Het Doesgoor",   plaats: "Markelo",      category: "avontuur",   min_age: 6, max_age: 99, prijs: 5,  indoor_friendly: false, lat: 52.2430, lng: 6.5100, emoji: "🚵", desc: "Mountainbike- en pumptrackpark voor stoere fietsers." },
+
+  // — Kampen —
+  { id: 33, name: "Kinderboerderij Cantecleer",   plaats: "Kampen",       category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5550, lng: 5.9110, emoji: "🐔", desc: "Gratis kinderboerderij met dieren en een gezellige speeltuin." },
+
+  // — Weerribben-Wieden (NW-Overijssel) —
+  { id: 34, name: "Fluisterboot Giethoorn",       plaats: "Giethoorn",    category: "water",      min_age: 0, max_age: 99, prijs: 12, indoor_friendly: false, lat: 52.7380, lng: 6.0780, emoji: "🛶", desc: "Zelf sturen door 'het Venetië van het noorden'." },
+  { id: 35, name: "Kabouterpad Weerribben",       plaats: "Ossenzijl",    category: "natuur",     min_age: 2, max_age: 10, prijs: 0,  indoor_friendly: false, lat: 52.7950, lng: 5.9300, emoji: "🍄", desc: "Speurtocht langs kabouterhuisjes door het moerasnatuurgebied." },
+  { id: 36, name: "Speelnatuur OERRR de Wieden",  plaats: "Sint Jansklooster", category: "natuur",min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.6600, lng: 5.9850, emoji: "🌿", desc: "Natuurspeelplek met vlonders, modderkeuken en uitkijktoren." },
+  { id: 37, name: "Klimbos Overijssel",           plaats: "Paasloo",      category: "avontuur",   min_age: 6, max_age: 99, prijs: 20, indoor_friendly: false, lat: 52.8080, lng: 5.9850, emoji: "🧗‍♀️", desc: "Vier klimparcoursen met hindernissen tot negen meter hoog." },
+
+  // — Grensicoon (net buiten Overijssel, populair) —
+  { id: 38, name: "WILDLANDS Adventure Zoo",      plaats: "Emmen",        category: "dieren",     min_age: 0, max_age: 99, prijs: 26, indoor_friendly: true,  lat: 52.7850, lng: 6.8970, emoji: "🐘", desc: "Belevenis-dierentuin met jungle, savanne en poolwereld." },
 ];
 
 /* ----------------------------------------------------------------------
@@ -520,7 +551,7 @@ function App() {
   const [prefs, setPrefs] = useState(() =>
     loadJSON(PREFS_KEY, {
       ages: [2, 6], // de kern-overlap: peuter + kleuter
-      radius: 50,
+      radius: 75,
       maxBudget: 30,
       environment: "all",
     })
