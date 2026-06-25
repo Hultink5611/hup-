@@ -1,5 +1,17 @@
 # Changelog — Hup!
 
+## v2.7 — Voor elk gezelschap: "Met wie?" + 115 nieuwe uitjes
+- **"Met wie?"-modus** (Gezin / Partner / Vrienden / Opa & oma / Alleen) op Home
+  en in de filters. Stuurt welke uitjes naar voren komen: gezin gebruikt
+  leeftijden, de rest gebruikt een `audience`-tag per uitje.
+- **Bredere categorieën**: naast natuur/speeltuin/dieren/museum/binnenpret/water/
+  avontuur/eten nu ook **cultuur, wellness, uitgaan en bezienswaardigheid**.
+- **Database fors uitgebreid: 109 → 224 uitjes** (115 nieuw, geverifieerd juni
+  2026, met bronnen): restaurants & brouwerijen, theaters/bioscopen/musea,
+  sauna's & wellness, escape rooms/bowling/karten, wandelroutes/landgoederen/
+  vestingstadjes, kano/paintball/manege en meer — heel Overijssel + grensregio.
+- Service Worker → `hup-v11`.
+
 ## v2.6 — Ontdek: inline dropdown
 - Kaartjes in Ontdek klappen nu **inline uit** (tik = open) met omschrijving,
   leeftijd, binnen/buiten en seizoen — zónder naar een vol scherm te springen.
