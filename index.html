@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Hup! — Spontane Uitjes</title>
+  <meta name="description" content="Eén tik en we kiezen een uitje dat precies past bij jouw gezin." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#14b8a6" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Hup!" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- Fonts: geometric display + clean grotesque body -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400..900;1,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS v4 (browser build) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-canvas: #FAF9F6;
+      --color-ink: #111111;
+      --color-teal-50:  #f0fdfa;
+      --color-teal-100: #ccfbf1;
+      --color-teal-400: #2dd4bf;
+      --color-teal-500: #14b8a6;
+      --color-teal-600: #0d9488;
+      --color-teal-700: #0f766e;
+      --color-mond-yellow: #F4C20D;
+      --color-mond-red: #E63946;
+      --color-mond-blue: #1D4ED8;
+      --font-display: "Archivo", system-ui, sans-serif;
+      --font-body: "Hanken Grotesk", system-ui, sans-serif;
+    }
+  </style>
+
+  <!-- App look & feel that goes beyond utility classes -->
+  <style>
+    :root { color-scheme: light; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--color-canvas);
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overscroll-behavior-y: none;
+    }
+    .font-display { font-family: var(--font-display); }
+
+    /* Mondrian grid backdrop */
+    .mondrian-bg::before {
+      content: "";
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        linear-gradient(0deg, transparent calc(100% - 2px), rgba(17,17,17,.06) calc(100% - 2px)) 0 0 / 100% 33.333%,
+        linear-gradient(90deg, transparent calc(100% - 2px), rgba(17,17,17,.06) calc(100% - 2px)) 0 0 / 38% 100%;
+    }
+
+    /* Loud, tactile Hup button */
+    .hup-btn {
+      box-shadow: 0 0 0 3px var(--color-ink), 12px 12px 0 0 var(--color-ink);
+      transition: transform .12s cubic-bezier(.2,.8,.2,1), box-shadow .12s ease;
+    }
+    .hup-btn:hover { transform: translate(-2px,-2px); box-shadow: 0 0 0 3px var(--color-ink), 16px 16px 0 0 var(--color-ink); }
+    .hup-btn:active { transform: translate(8px,8px); box-shadow: 0 0 0 3px var(--color-ink), 2px 2px 0 0 var(--color-ink); }
+
+    .hard-shadow { box-shadow: 8px 8px 0 0 var(--color-ink); }
+    .hard-shadow-sm { box-shadow: 4px 4px 0 0 var(--color-ink); }
+
+    /* Entrance choreography */
+    @keyframes riseIn { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform:none; } }
+    @keyframes popIn { 0% { opacity:0; transform: scale(.92) translateY(10px); } 60% { transform: scale(1.01); } 100% { opacity:1; transform:none; } }
+    @keyframes drawerIn { from { transform: translateX(100%); } to { transform: none; } }
+    @keyframes dotpulse { 0%,100% { transform: scale(1); opacity:.55 } 50% { transform: scale(1.6); opacity:1 } }
+    .rise { animation: riseIn .55s both cubic-bezier(.2,.7,.2,1); }
+    .pop { animation: popIn .5s both cubic-bezier(.2,.8,.2,1); }
+    .drawer-in { animation: drawerIn .32s both cubic-bezier(.2,.8,.2,1); }
+
+    /* Range slider — squared off, Mondrian feel */
+    input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: var(--color-ink); border-radius: 0; cursor: pointer; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; background: var(--color-teal-500); border: 3px solid var(--color-ink); border-radius: 0; box-shadow: 3px 3px 0 0 var(--color-ink); }
+    input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: var(--color-teal-500); border: 3px solid var(--color-ink); border-radius: 0; }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .rise, .pop, .drawer-in { animation: none !important; }
+      .hup-btn { transition: none; }
+    }
+  </style>
+
+  <!-- React + Babel (JSX in app.js) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="mondrian-bg">
+  <div id="root"></div>
+
+  <!-- App (JSX) — compiled in-browser by Babel with the CLASSIC runtime
+       (React.createElement). The automatic runtime emits an ESM import that
+       can't run inside a classic <script>, so we transform explicitly. -->
+  <script>
+    (function () {
+      function boot() {
+        fetch('./app.js')
+          .then(function (r) { return r.text(); })
+          .then(function (code) {
+            var out = Babel.transform(code, {
+              presets: [['react', { runtime: 'classic' }]],
+              filename: 'app.js',
+            }).code;
+            var s = document.createElement('script');
+            s.textContent = out;
+            document.body.appendChild(s);
+          })
+          .catch(function (e) { console.error('Hup! laden mislukt:', e); });
+      }
+      if (window.Babel && window.React && window.ReactDOM) boot();
+      else window.addEventListener('load', boot);
+    })();
+  </script>
+
+  <!-- Service worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function (err) {
+          console.warn('SW registratie mislukt:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
