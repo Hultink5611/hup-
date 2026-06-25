@@ -418,7 +418,7 @@ function FiltersSheet({ open, onClose, prefs, setPrefs, count }) {
     const cur = prefs[key]; const next = cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val];
     setPrefs({ ...prefs, [key]: next });
   };
-  const budgets = [["gratis", "Gratis"], ["low", "€"], ["mid", "€€"], ["high", "€€€"]];
+  const budgets = [["gratis", "Gratis"], ["low", "€1–10"], ["mid", "€11–25"], ["high", "€26+"]];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -445,8 +445,8 @@ function FiltersSheet({ open, onClose, prefs, setPrefs, count }) {
 
           {/* Budget */}
           <section>
-            <h3 className="font-display font-extrabold uppercase tracking-wide text-sm text-muted mb-2">Budget</h3>
-            <div className="flex gap-2">
+            <h3 className="font-display font-extrabold uppercase tracking-wide text-sm text-muted mb-2">Budget <span className="font-semibold normal-case tracking-normal text-muted/70">· per persoon</span></h3>
+            <div className="flex flex-wrap gap-2">
               {budgets.map(([v, l]) => <Chip key={v} active={prefs.budgets.includes(v)} onClick={() => toggleArr("budgets", v)}>{l}</Chip>)}
             </div>
           </section>
