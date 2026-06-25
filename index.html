@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <title>Hup! — Spontane Uitjes</title>
   <meta name="description" content="Eén tik en we kiezen een uitje dat precies past bij jouw gezin." />
 
@@ -16,102 +16,105 @@
   <meta name="apple-mobile-web-app-title" content="Hup!" />
   <meta name="mobile-web-app-capable" content="yes" />
 
-  <!-- Fonts: geometric display + clean grotesque body -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400..900;1,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,500..700&display=swap" rel="stylesheet" />
 
   <!-- Tailwind CSS v4 (browser build) -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <style type="text/tailwindcss">
     @theme {
-      --color-canvas: #FAF9F6;
-      --color-ink: #111111;
+      --color-mint: #EAF7F4;
+      --color-mint2: #D9EEE8;
+      --color-ink: #123A34;
+      --color-muted: #5C807A;
+      --color-line: #DCEDE8;
       --color-teal-50:  #f0fdfa;
       --color-teal-100: #ccfbf1;
+      --color-teal-200: #99f6e4;
       --color-teal-400: #2dd4bf;
       --color-teal-500: #14b8a6;
       --color-teal-600: #0d9488;
       --color-teal-700: #0f766e;
-      --color-mond-yellow: #F4C20D;
-      --color-mond-red: #E63946;
-      --color-mond-blue: #1D4ED8;
-      --font-display: "Archivo", system-ui, sans-serif;
-      --font-body: "Hanken Grotesk", system-ui, sans-serif;
+      --color-amber: #F5A623;
+      --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+      --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
     }
   </style>
 
-  <!-- App look & feel that goes beyond utility classes -->
   <style>
     :root { color-scheme: light; }
     html, body { height: 100%; }
     body {
       margin: 0;
-      background: var(--color-canvas);
-      color: var(--color-ink);
       font-family: var(--font-body);
+      color: var(--color-ink);
+      background: linear-gradient(180deg, #EAF7F4 0%, #DCEFEA 60%, #D2EAE3 100%);
+      background-attachment: fixed;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       overscroll-behavior-y: none;
     }
-    .font-display { font-family: var(--font-display); }
+    #root { min-height: 100dvh; }
 
-    /* Mondrian grid backdrop */
-    .mondrian-bg::before {
-      content: "";
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background:
-        linear-gradient(0deg, transparent calc(100% - 2px), rgba(17,17,17,.06) calc(100% - 2px)) 0 0 / 100% 33.333%,
-        linear-gradient(90deg, transparent calc(100% - 2px), rgba(17,17,17,.06) calc(100% - 2px)) 0 0 / 38% 100%;
+    .shadow-soft { box-shadow: 0 14px 40px -12px rgba(15,118,110,.28), 0 4px 12px -6px rgba(15,118,110,.16); }
+    .shadow-card { box-shadow: 0 10px 30px -10px rgba(15,118,110,.22); }
+    .shadow-nav  { box-shadow: 0 -8px 30px -16px rgba(15,118,110,.35); }
+    .ring-soft   { box-shadow: 0 0 0 6px rgba(20,184,166,.12); }
+
+    /* HUP button */
+    .hup-btn { transition: transform .14s cubic-bezier(.2,.8,.2,1), box-shadow .14s ease; }
+    .hup-btn:active { transform: scale(.94); }
+    .hup-pulse::before {
+      content:""; position:absolute; inset:-10px; border-radius:9999px;
+      border:2px solid rgba(20,184,166,.35); animation: hupPulse 2.4s ease-out infinite;
     }
+    @keyframes hupPulse { 0% { transform: scale(.9); opacity:.7 } 100% { transform: scale(1.25); opacity:0 } }
 
-    /* Loud, tactile Hup button */
-    .hup-btn {
-      box-shadow: 0 0 0 3px var(--color-ink), 12px 12px 0 0 var(--color-ink);
-      transition: transform .12s cubic-bezier(.2,.8,.2,1), box-shadow .12s ease;
-    }
-    .hup-btn:hover { transform: translate(-2px,-2px); box-shadow: 0 0 0 3px var(--color-ink), 16px 16px 0 0 var(--color-ink); }
-    .hup-btn:active { transform: translate(8px,8px); box-shadow: 0 0 0 3px var(--color-ink), 2px 2px 0 0 var(--color-ink); }
+    @keyframes pop { 0% { opacity:0; transform: translateY(16px) scale(.97) } 60% { transform: translateY(0) scale(1.005) } 100% { opacity:1; transform:none } }
+    @keyframes rise { from { opacity:0; transform: translateY(10px) } to { opacity:1; transform:none } }
+    @keyframes fade { from { opacity:0 } to { opacity:1 } }
+    @keyframes slideUp { from { transform: translateY(100%) } to { transform: none } }
+    @keyframes spinwin { 0% { transform: translateY(8px); opacity:0 } 100% { transform: translateY(0); opacity:1 } }
+    .pop { animation: pop .5s both cubic-bezier(.2,.8,.2,1); }
+    .rise { animation: rise .45s both cubic-bezier(.2,.8,.2,1); }
+    .fade { animation: fade .3s both; }
+    .sheet-in { animation: slideUp .34s both cubic-bezier(.2,.8,.2,1); }
+    .win-in { animation: spinwin .12s both; }
 
-    .hard-shadow { box-shadow: 8px 8px 0 0 var(--color-ink); }
-    .hard-shadow-sm { box-shadow: 4px 4px 0 0 var(--color-ink); }
+    /* Range slider */
+    input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:8px; border-radius:9999px;
+      background: linear-gradient(90deg, var(--color-teal-500) var(--p,50%), #CDE8E2 var(--p,50%)); cursor:pointer; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:26px; height:26px; border-radius:9999px;
+      background:#fff; border:4px solid var(--color-teal-500); box-shadow:0 3px 8px rgba(15,118,110,.35); margin-top:0; }
+    input[type="range"]::-moz-range-thumb { width:22px; height:22px; border-radius:9999px; background:#fff; border:4px solid var(--color-teal-500); box-shadow:0 3px 8px rgba(15,118,110,.35); }
 
-    /* Entrance choreography */
-    @keyframes riseIn { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform:none; } }
-    @keyframes popIn { 0% { opacity:0; transform: scale(.92) translateY(10px); } 60% { transform: scale(1.01); } 100% { opacity:1; transform:none; } }
-    @keyframes drawerIn { from { transform: translateX(100%); } to { transform: none; } }
-    @keyframes dotpulse { 0%,100% { transform: scale(1); opacity:.55 } 50% { transform: scale(1.6); opacity:1 } }
-    .rise { animation: riseIn .55s both cubic-bezier(.2,.7,.2,1); }
-    .pop { animation: popIn .5s both cubic-bezier(.2,.8,.2,1); }
-    .drawer-in { animation: drawerIn .32s both cubic-bezier(.2,.8,.2,1); }
+    .no-scrollbar::-webkit-scrollbar { display:none; }
+    .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
 
-    /* Range slider — squared off, Mondrian feel */
-    input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: var(--color-ink); border-radius: 0; cursor: pointer; }
-    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; background: var(--color-teal-500); border: 3px solid var(--color-ink); border-radius: 0; box-shadow: 3px 3px 0 0 var(--color-ink); }
-    input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: var(--color-teal-500); border: 3px solid var(--color-ink); border-radius: 0; }
-
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* iOS toggle */
+    .switch { width:50px; height:30px; border-radius:9999px; background:#CBE3DD; position:relative; transition:background .2s; flex:0 0 auto; }
+    .switch[data-on="true"] { background: var(--color-teal-500); }
+    .switch .knob { position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:9999px; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,.2); transition:transform .2s; }
+    .switch[data-on="true"] .knob { transform: translateX(20px); }
 
     @media (prefers-reduced-motion: reduce) {
-      .rise, .pop, .drawer-in { animation: none !important; }
-      .hup-btn { transition: none; }
+      .pop,.rise,.fade,.sheet-in,.win-in,.hup-pulse::before { animation:none !important; }
+      .hup-btn { transition:none; }
     }
   </style>
 
-  <!-- React + Babel (JSX in app.js) -->
+  <!-- React + Babel + Lucide -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Lucide icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="mondrian-bg">
+<body>
   <div id="root"></div>
 
-  <!-- App (JSX) — compiled in-browser by Babel with the CLASSIC runtime
-       (React.createElement). The automatic runtime emits an ESM import that
-       can't run inside a classic <script>, so we transform explicitly. -->
+  <!-- App (JSX) compiled in-browser with the CLASSIC runtime (React.createElement) -->
   <script>
     (function () {
       function boot() {
@@ -133,7 +136,7 @@
     })();
   </script>
 
-  <!-- Service worker registration -->
+  <!-- Service worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {

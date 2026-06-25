@@ -1,757 +1,648 @@
 /* Hup! — Spontane Uitjes
- * Pure React (in-browser Babel). Geen build-stap.
- * Geïnspireerd op de dataset-structuur van verras-me-nu.lovable.app:
- * activiteiten met min_age/max_age, prijs, indoor_friendly, lat/lng.
- * Startlocatie: Hardenberg.
+ * Pure React (in-browser Babel, classic runtime). Geen build-stap.
+ * Offline-first PWA. Database geverifieerd (zie CHANGELOG); prijzen,
+ * tijden en ratings zijn indicatief — check altijd de website.
  */
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-/* ----------------------------------------------------------------------
- * Constants & helpers
- * -------------------------------------------------------------------- */
+/* ---------------------------------------------------------------- consts */
 const HARDENBERG = { name: "Hardenberg", lat: 52.5752, lng: 6.6177 };
 const FAV_KEY = "hup.favorites.v1";
-const PREFS_KEY = "hup.prefs.v1";
+const PREFS_KEY = "hup.prefs.v2";
+const SOUND_KEY = "hup.sound.v1";
 
-const CATEGORIES = {
-  natuur:    { label: "Natuur",       color: "var(--color-teal-500)" },
-  speeltuin: { label: "Speeltuin",    color: "var(--color-mond-yellow)" },
-  dieren:    { label: "Dieren",       color: "var(--color-mond-red)" },
-  museum:    { label: "Museum",       color: "var(--color-mond-blue)" },
-  binnenpret:{ label: "Binnenpret",   color: "var(--color-teal-600)" },
-  water:     { label: "Water",        color: "var(--color-teal-400)" },
-  avontuur:  { label: "Avontuur",     color: "var(--color-mond-red)" },
-  eten:      { label: "Lekker eten",  color: "var(--color-mond-yellow)" },
+const CAT = {
+  natuur:    { label: "Natuur",     g: ["#34d399", "#0d9488"] },
+  speeltuin: { label: "Speeltuin",  g: ["#fbbf24", "#f97316"] },
+  dieren:    { label: "Dieren",     g: ["#fb923c", "#ef4444"] },
+  museum:    { label: "Museum",     g: ["#818cf8", "#6366f1"] },
+  binnenpret:{ label: "Binnenpret", g: ["#f472b6", "#db2777"] },
+  water:     { label: "Water",      g: ["#38bdf8", "#0ea5e9"] },
+  avontuur:  { label: "Avontuur",   g: ["#f87171", "#e11d48"] },
+  eten:      { label: "Lekker eten",g: ["#fcd34d", "#f59e0b"] },
 };
 
-// Haversine afstand in kilometers
+/* ---------------------------------------------------------------- helpers */
 function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371; // km
-  const toRad = (d) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
+  const R = 6371, toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
 const euro = (n) => (n === 0 ? "Gratis" : "€" + n);
+function priceTier(p) { return p === 0 ? "gratis" : p <= 10 ? "low" : p <= 25 ? "mid" : "high"; }
 
-/* ----------------------------------------------------------------------
- * De database — Nederlandse gezinsuitjes rond Hardenberg (en breder)
- * -------------------------------------------------------------------- */
+/* ---------------------------------------------------------------- database
+ * Velden: min_age, max_age, prijs(€/p.p. indicatief), indoor_friendly,
+ * lat/lng, duur, rating(indicatief), emoji, desc. Startlocatie Hardenberg.
+ */
 const ACTIVITIES = [
   // — Hardenberg & noordoost-Overijssel —
-  { id: 1,  name: "Kinderboerderij De Klimboom",  plaats: "Hardenberg",   category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5750, lng: 6.6010, emoji: "🐐", desc: "Knuffelen met geiten, konijnen en kippen — vlakbij het centrum." },
-  { id: 2,  name: "Zwembad De Marsch",            plaats: "Hardenberg",   category: "water",      min_age: 0, max_age: 99, prijs: 7,  indoor_friendly: true,  lat: 52.5705, lng: 6.6125, emoji: "🏊", desc: "Overdekt zwembad met glijbaan en peuterbad." },
-  { id: 3,  name: "Knof de Pad kinderwandelroute",plaats: "Hardenberg",   category: "natuur",     min_age: 2, max_age: 10, prijs: 0,  indoor_friendly: false, lat: 52.5760, lng: 6.6300, emoji: "🐾", desc: "Speurroute met opdrachten door bos en langs de Vecht." },
-  { id: 4,  name: "Pannenkoekenboerderij",        plaats: "Gramsbergen",  category: "eten",       min_age: 0, max_age: 99, prijs: 15, indoor_friendly: true,  lat: 52.6230, lng: 6.6510, emoji: "🥞", desc: "Onbeperkt pannenkoeken met binnen- en buitenspeelhoek." },
-  { id: 5,  name: "Attractiepark Slagharen",      plaats: "Slagharen",    category: "avontuur",   min_age: 3, max_age: 99, prijs: 26, indoor_friendly: false, lat: 52.6175, lng: 6.5300, emoji: "🎢", desc: "Western-attractiepark met achtbanen, ponyshow en waterpret." },
-  { id: 6,  name: "Kinderboerderij Dekibo",       plaats: "Dedemsvaart",  category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5980, lng: 6.4600, emoji: "🐓", desc: "Gratis kinderboerderij met boerderijdieren en speelveld." },
-  { id: 7,  name: "Speel- & Kinderboerderij Hoeve Bosman", plaats: "De Krim", category: "dieren", min_age: 1, max_age: 12, prijs: 8, indoor_friendly: false, lat: 52.6600, lng: 6.5950, emoji: "🐄", desc: "Boerderijbeleving met dieren, speeltuin en skelterbaan." },
+  { id: 1,  name: "Kinderboerderij Baalder", plaats: "Hardenberg", category: "dieren", min_age: 0, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.5800, lng: 6.6400, duur: "1–2 uur", rating: 4.3, emoji: "🐐", desc: "Gratis buurtboerderij met geiten, kippen en konijnen in Baalder." },
+  { id: 2,  name: "Zwembad De Slag", plaats: "Hardenberg", category: "water", min_age: 0, max_age: 99, prijs: 5, indoor_friendly: true, lat: 52.5700, lng: 6.6150, duur: "2–3 uur", rating: 4.1, emoji: "🏊", desc: "Overdekt zwembad met glijbaan, peuterbad en stroomversnelling." },
+  { id: 3,  name: "Knof de Pad — Rheezerbelten", plaats: "Hardenberg", category: "natuur", min_age: 7, max_age: 12, prijs: 7, indoor_friendly: false, lat: 52.5600, lng: 6.5600, duur: "1–2 uur", rating: 4.3, emoji: "🧭", desc: "Speurroute met een rugzak vol opdrachten door bos en heide." },
+  { id: 4,  name: "Pannenkoekenboerderij De Ganzenhoeve", plaats: "Holthone", category: "eten", min_age: 0, max_age: 99, prijs: 15, indoor_friendly: true, lat: 52.6500, lng: 6.7200, duur: "1–2 uur", rating: 4.3, emoji: "🥞", desc: "Onbeperkt pannenkoeken met speelhoek, tussen Gramsbergen en Coevorden." },
+  { id: 5,  name: "Attractiepark Slagharen", plaats: "Slagharen", category: "avontuur", min_age: 3, max_age: 99, prijs: 30, indoor_friendly: false, lat: 52.6175, lng: 6.5300, duur: "hele dag", rating: 4.1, emoji: "🎢", desc: "Western-attractiepark met achtbanen, ponyshow en waterpret." },
+  { id: 6,  name: "Kinderboerderij Dekibo", plaats: "Dedemsvaart", category: "dieren", min_age: 0, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.5980, lng: 6.4600, duur: "1–2 uur", rating: 4.2, emoji: "🐓", desc: "Gratis kinderboerderij met boerderijdieren en een speelveld." },
+  { id: 7,  name: "Hoeve Bosman", plaats: "De Krim", category: "dieren", min_age: 1, max_age: 12, prijs: 5, indoor_friendly: false, lat: 52.6600, lng: 6.5950, duur: "1–2 uur", rating: 4.4, emoji: "🐄", desc: "Melkveeboerderij met speurtocht, dieren en zelfgemaakt ijs (seizoen)." },
 
-  // — Ommen, Dalfsen & Salland —
-  { id: 8,  name: "Speelbos & Blotevoetenpad",    plaats: "Ommen",        category: "natuur",     min_age: 1, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5260, lng: 6.4350, emoji: "🌲", desc: "Hutten bouwen, modderen en een blotevoetenpad in het bos." },
-  { id: 9,  name: "Speelpark De Flierefluiter",   plaats: "Raalte",       category: "speeltuin",  min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: true,  lat: 52.4300, lng: 6.2400, emoji: "🎠", desc: "Binnen- én buitenspeeltuin met overdekte kinderboerderij." },
+  // — Ommen, Salland & Sallandse Heuvelrug —
+  { id: 8,  name: "Speelbos Hol van de Leeuw", plaats: "Lemele", category: "natuur", min_age: 4, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.5000, lng: 6.3800, duur: "1–2 uur", rating: 4.4, emoji: "🌲", desc: "Hutten bouwen en klimmen op de bosrijke Lemelerberg." },
+  { id: 9,  name: "Speelpark De Flierefluiter", plaats: "Raalte", category: "speeltuin", min_age: 1, max_age: 12, prijs: 13, indoor_friendly: true, lat: 52.4300, lng: 6.2400, duur: "halve dag", rating: 4.2, emoji: "🎠", desc: "Grote binnen- én buitenspeeltuin met overdekte kinderboerderij." },
+  { id: 10, name: "Avonturenpark Hellendoorn", plaats: "Hellendoorn", category: "avontuur", min_age: 3, max_age: 99, prijs: 33, indoor_friendly: false, lat: 52.3850, lng: 6.4670, duur: "hele dag", rating: 4.3, emoji: "🎢", desc: "Attractiepark met achtbanen, dwaaltuin en waterattracties." },
+  { id: 11, name: "Speelbos Sallandse Heuvelrug", plaats: "Nijverdal", category: "natuur", min_age: 2, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.3450, lng: 6.4300, duur: "1–2 uur", rating: 4.4, emoji: "🌳", desc: "Twee kilometer hutten bouwen, klimmen en slingeren in het bos." },
+  { id: 12, name: "Kartplaza Actionworld", plaats: "Nijverdal", category: "binnenpret", min_age: 8, max_age: 99, prijs: 19, indoor_friendly: true, lat: 52.3650, lng: 6.4600, duur: "1–2 uur", rating: 4.1, emoji: "🏎️", desc: "Indoor kartbaan, lasergamen en speelhal onder één dak." },
+  { id: 13, name: "Natuurdiorama Holterberg", plaats: "Holten", category: "museum", min_age: 3, max_age: 99, prijs: 9, indoor_friendly: true, lat: 52.2880, lng: 6.4250, duur: "1–2 uur", rating: 4.3, emoji: "🦌", desc: "Duizend dieren in levensechte diorama's, met buitenspeelbos." },
+  { id: 14, name: "Speelboerderij Dondertman", plaats: "Holten", category: "speeltuin", min_age: 1, max_age: 12, prijs: 6, indoor_friendly: true, lat: 52.2900, lng: 6.4300, duur: "2–3 uur", rating: 4.6, emoji: "🐮", desc: "Binnen- en buitenspeeltuin met dieren en pannenkoeken." },
 
-  // — Zwolle & omgeving —
-  { id: 10, name: "Djambo Kidsplay",              plaats: "Zwolle",       category: "binnenpret", min_age: 1, max_age: 11, prijs: 9,  indoor_friendly: true,  lat: 52.5168, lng: 6.0830, emoji: "🎈", desc: "Grote indoor speelhal met glijbanen, klimtoestellen en air-track." },
-  { id: 11, name: "Dinoland Zwolle",              plaats: "Zwolle",       category: "avontuur",   min_age: 3, max_age: 12, prijs: 13, indoor_friendly: false, lat: 52.4900, lng: 6.0700, emoji: "🦕", desc: "Dinopark met levensechte dino's, fossielen zoeken en speeltuin." },
-  { id: 12, name: "Nederlands Bakkerijmuseum",    plaats: "Hattem",       category: "museum",     min_age: 4, max_age: 99, prijs: 9,  indoor_friendly: true,  lat: 52.4750, lng: 6.0630, emoji: "🥨", desc: "Zelf koekjes bakken in een levend bakkerijmuseum." },
+  // — Zwolle, Deventer, Hattem, Kampen —
+  { id: 15, name: "Ballorig Zwolle", plaats: "Zwolle", category: "binnenpret", min_age: 1, max_age: 11, prijs: 10, indoor_friendly: true, lat: 52.5168, lng: 6.0830, duur: "2–3 uur", rating: 4.0, emoji: "🎈", desc: "Overdekt speelparadijs met glijbanen, klimtoestellen en air-track." },
+  { id: 16, name: "Dinoland Zwolle", plaats: "Zwolle", category: "avontuur", min_age: 3, max_age: 12, prijs: 17, indoor_friendly: false, lat: 52.4900, lng: 6.0700, duur: "halve dag", rating: 4.2, emoji: "🦕", desc: "Dinopark met levensechte dino's, fossielen zoeken en speeltuin (seizoen)." },
+  { id: 17, name: "Openluchtbad De Vrolijkheid", plaats: "Zwolle", category: "water", min_age: 0, max_age: 99, prijs: 5, indoor_friendly: false, lat: 52.4900, lng: 6.1000, duur: "2–3 uur", rating: 4.2, emoji: "🏖️", desc: "Gezellig openluchtzwembad met glijbaan en ligweide (zomer)." },
+  { id: 18, name: "Nederlands Bakkerijmuseum", plaats: "Hattem", category: "museum", min_age: 4, max_age: 99, prijs: 12, indoor_friendly: true, lat: 52.4750, lng: 6.0630, duur: "1–2 uur", rating: 4.2, emoji: "🥨", desc: "Zelf koekjes bakken in een levend bakkerijmuseum." },
+  { id: 19, name: "Kinderboerderij De Ulebelt", plaats: "Deventer", category: "dieren", min_age: 0, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.2550, lng: 6.1800, duur: "1–2 uur", rating: 4.5, emoji: "🐑", desc: "Gratis kinderboerderij en natuurtuin met blotevoetenpad." },
+  { id: 20, name: "Speelgoedmuseum Deventer", plaats: "Deventer", category: "museum", min_age: 2, max_age: 12, prijs: 9, indoor_friendly: true, lat: 52.2520, lng: 6.1600, duur: "1–2 uur", rating: 4.3, emoji: "🧸", desc: "Historisch speelgoed plus een grote doe-speelzolder." },
+  { id: 21, name: "Kinderboerderij Cantecleer", plaats: "Kampen", category: "dieren", min_age: 0, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.5550, lng: 5.9110, duur: "1–2 uur", rating: 4.2, emoji: "🐔", desc: "Gratis kinderboerderij met dieren en een gezellige speeltuin." },
 
-  // — Deventer —
-  { id: 13, name: "Kinderboerderij De Ulebelt",   plaats: "Deventer",     category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.2550, lng: 6.1800, emoji: "🐑", desc: "Gratis kinderboerderij en natuurtuin met blote-voetenpad." },
-  { id: 14, name: "Speelgoedmuseum Deventer",     plaats: "Deventer",     category: "museum",     min_age: 2, max_age: 12, prijs: 9,  indoor_friendly: true,  lat: 52.2520, lng: 6.1600, emoji: "🧸", desc: "Historisch speelgoed plus een grote doe-speelzolder." },
-
-  // — Sallandse Heuvelrug: Nijverdal, Hellendoorn, Holten —
-  { id: 15, name: "Avonturenpark Hellendoorn",    plaats: "Hellendoorn",  category: "avontuur",   min_age: 3, max_age: 99, prijs: 29, indoor_friendly: false, lat: 52.3850, lng: 6.4670, emoji: "🎢", desc: "Attractiepark met achtbanen, dwaaltuin en waterattracties." },
-  { id: 16, name: "Aquaventura Slidepark",        plaats: "Hellendoorn",  category: "water",      min_age: 4, max_age: 99, prijs: 13, indoor_friendly: true,  lat: 52.3900, lng: 6.4600, emoji: "🌊", desc: "Glijbanenparadijs met binnen- en buitenbaden." },
-  { id: 17, name: "Speelbos Sallandse Heuvelrug", plaats: "Nijverdal",    category: "natuur",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.3450, lng: 6.4300, emoji: "🌳", desc: "Twee kilometer hutten bouwen, klimmen en slingeren in het bos." },
-  { id: 18, name: "Kartplaza Actionworld",        plaats: "Nijverdal",    category: "binnenpret", min_age: 6, max_age: 99, prijs: 20, indoor_friendly: true,  lat: 52.3650, lng: 6.4600, emoji: "🏎️", desc: "Indoor kartbaan, lasergamen en speelhal onder één dak." },
-  { id: 19, name: "Natuurmuseum Holterberg",      plaats: "Holten",       category: "museum",     min_age: 3, max_age: 99, prijs: 10, indoor_friendly: true,  lat: 52.2880, lng: 6.4250, emoji: "🦌", desc: "Meer dan duizend dieren in levensechte diorama's." },
-  { id: 20, name: "Speelboerderij Dondertman",    plaats: "Holten",       category: "speeltuin",  min_age: 1, max_age: 12, prijs: 11, indoor_friendly: true,  lat: 52.2900, lng: 6.4300, emoji: "🐮", desc: "Binnen- en buitenspeeltuin met dieren en pannenkoeken." },
-
-  // — Twente: Enschede, Hengelo, Almelo, Borne, Oldenzaal —
-  { id: 21, name: "De Museumfabriek",             plaats: "Enschede",     category: "museum",     min_age: 4, max_age: 99, prijs: 15, indoor_friendly: true,  lat: 52.2200, lng: 6.8900, emoji: "🦣", desc: "Doe-museum met natuur, techniek en een echt mammoetskelet." },
-  { id: 22, name: "Avontura Speelparadijs",       plaats: "Enschede",     category: "binnenpret", min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: true,  lat: 52.2220, lng: 6.8950, emoji: "🐵", desc: "Overdekt speelparadijs met klimtoestellen en ballenbak." },
-  { id: 23, name: "Kinderboerderij De Wesseler",  plaats: "Enschede",     category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.2050, lng: 6.8800, emoji: "🐰", desc: "Gratis stadskinderboerderij met knuffeldieren en speeltuin." },
-  { id: 24, name: "Attractiepark De Waarbeek",    plaats: "Hengelo",      category: "avontuur",   min_age: 2, max_age: 99, prijs: 19, indoor_friendly: false, lat: 52.2700, lng: 6.7800, emoji: "🎡", desc: "Nostalgisch familiepark met all-in formule en oude achtbaan." },
-  { id: 25, name: "Jump XL Trampolinepark",       plaats: "Hengelo",      category: "avontuur",   min_age: 4, max_age: 99, prijs: 13, indoor_friendly: true,  lat: 52.2650, lng: 6.7930, emoji: "🤸", desc: "Reusachtig trampolinepark met twister, trapeze en foam pit." },
-  { id: 26, name: "Monkey Town Almelo",           plaats: "Almelo",       category: "binnenpret", min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: true,  lat: 52.3570, lng: 6.6680, emoji: "🙈", desc: "Grote overdekte speelhal met ballenbak en klimtoestellen." },
-  { id: 27, name: "Kids City Overijssel",         plaats: "Borne",        category: "binnenpret", min_age: 1, max_age: 12, prijs: 9,  indoor_friendly: true,  lat: 52.3000, lng: 6.7520, emoji: "🏰", desc: "Indoor speelstad met thema-werelden en grote glijbanen." },
-  { id: 28, name: "Klein Afrika",                 plaats: "Oldenzaal",    category: "dieren",     min_age: 1, max_age: 12, prijs: 8,  indoor_friendly: false, lat: 52.3130, lng: 6.9280, emoji: "🦒", desc: "Speeltuin, dierentuin én pannenkoekenrestaurant in één." },
-  { id: 29, name: "Outdoor Challenge Park",       plaats: "Oldenzaal",    category: "avontuur",   min_age: 6, max_age: 99, prijs: 15, indoor_friendly: false, lat: 52.3200, lng: 6.9400, emoji: "🧗", desc: "Klim-, kano- en survivalbaan in de Twentse natuur." },
-  { id: 30, name: "Klimbos AvaTarz",              plaats: "Deurningen",   category: "avontuur",   min_age: 6, max_age: 99, prijs: 22, indoor_friendly: false, lat: 52.3000, lng: 6.8600, emoji: "🌳", desc: "Klimparcours en tokkelbanen tot hoog in de bomen." },
-  { id: 31, name: "Het Groot Twentsch Maisdoolhof",plaats:"Fleringen",    category: "natuur",     min_age: 4, max_age: 99, prijs: 8,  indoor_friendly: false, lat: 52.3550, lng: 6.7600, emoji: "🌽", desc: "Verdwalen in een gigantisch maïsdoolhof met speelweide." },
-  { id: 32, name: "Bike-Fun Park Het Doesgoor",   plaats: "Markelo",      category: "avontuur",   min_age: 6, max_age: 99, prijs: 5,  indoor_friendly: false, lat: 52.2430, lng: 6.5100, emoji: "🚵", desc: "Mountainbike- en pumptrackpark voor stoere fietsers." },
-
-  // — Kampen —
-  { id: 33, name: "Kinderboerderij Cantecleer",   plaats: "Kampen",       category: "dieren",     min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.5550, lng: 5.9110, emoji: "🐔", desc: "Gratis kinderboerderij met dieren en een gezellige speeltuin." },
+  // — Twente —
+  { id: 22, name: "De Museumfabriek", plaats: "Enschede", category: "museum", min_age: 4, max_age: 99, prijs: 13, indoor_friendly: true, lat: 52.2200, lng: 6.8900, duur: "2–3 uur", rating: 4.3, emoji: "🦣", desc: "Doe-museum met natuur, techniek en een echt mammoetskelet." },
+  { id: 23, name: "FunZone Enschede", plaats: "Enschede", category: "binnenpret", min_age: 1, max_age: 12, prijs: 11, indoor_friendly: true, lat: 52.2220, lng: 6.8950, duur: "2–3 uur", rating: 4.0, emoji: "🐵", desc: "Overdekt speelparadijs met klimtoestellen, ballenbak en glijbanen." },
+  { id: 24, name: "Kinderboerderij De Wesseler", plaats: "Enschede", category: "dieren", min_age: 0, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.2050, lng: 6.8800, duur: "1–2 uur", rating: 4.3, emoji: "🐰", desc: "Gratis stadsboerderij met knuffeldieren en een speeltuin." },
+  { id: 25, name: "Attractiepark De Waarbeek", plaats: "Hengelo", category: "avontuur", min_age: 2, max_age: 99, prijs: 20, indoor_friendly: false, lat: 52.2700, lng: 6.7800, duur: "hele dag", rating: 4.2, emoji: "🎡", desc: "Nostalgisch familiepark met all-in formule, inclusief eten en drinken." },
+  { id: 26, name: "You Jump Hengelo", plaats: "Hengelo", category: "avontuur", min_age: 2, max_age: 99, prijs: 13, indoor_friendly: true, lat: 52.2650, lng: 6.7930, duur: "1–2 uur", rating: 4.1, emoji: "🤸", desc: "Trampolinepark met twister en foam pit — mini-jump vanaf 1,5 jr, regulier vanaf 7 jr." },
+  { id: 27, name: "Monkey Town Almelo", plaats: "Almelo", category: "binnenpret", min_age: 1, max_age: 12, prijs: 11, indoor_friendly: true, lat: 52.3570, lng: 6.6680, duur: "2–3 uur", rating: 4.0, emoji: "🙈", desc: "Grote overdekte speelhal met ballenbak en klimtoestellen, ouders gratis." },
+  { id: 28, name: "Kids City", plaats: "Borne", category: "binnenpret", min_age: 1, max_age: 12, prijs: 7, indoor_friendly: true, lat: 52.3000, lng: 6.7520, duur: "2–3 uur", rating: 4.1, emoji: "🏰", desc: "Indoor speelstad met thema-werelden en grote glijbanen." },
+  { id: 29, name: "Klein Afrika", plaats: "Oldenzaal", category: "dieren", min_age: 1, max_age: 12, prijs: 3, indoor_friendly: false, lat: 52.3130, lng: 6.9280, duur: "2–3 uur", rating: 4.0, emoji: "🦒", desc: "Klein dierenpark met speeltuin en pannenkoekenrestaurant bij Het Hulsbeek." },
+  { id: 30, name: "Recreatieplas 't Hulsbeek", plaats: "Oldenzaal", category: "water", min_age: 0, max_age: 99, prijs: 0, indoor_friendly: false, lat: 52.3200, lng: 6.9000, duur: "halve dag", rating: 4.3, emoji: "🏖️", desc: "Gratis strand en zwemwater met speeltuin in recreatiegebied Het Hulsbeek." },
+  { id: 31, name: "Klimbos AvaTarZ", plaats: "Deurningen", category: "avontuur", min_age: 6, max_age: 99, prijs: 16, indoor_friendly: false, lat: 52.3000, lng: 6.8600, duur: "2–3 uur", rating: 4.4, emoji: "🌳", desc: "Klimparcoursen door de bomen; laag parcours al vanaf 6 jaar." },
+  { id: 32, name: "Het Groot Twentsch Maisdoolhof", plaats: "Fleringen", category: "natuur", min_age: 4, max_age: 99, prijs: 5, indoor_friendly: false, lat: 52.3550, lng: 6.7600, duur: "1–2 uur", rating: 4.2, emoji: "🌽", desc: "Verdwalen in een gigantisch maïsdoolhof met speelweide (juli–september)." },
+  { id: 33, name: "Bike-Fun Park Het Doesgoor", plaats: "Markelo", category: "avontuur", min_age: 6, max_age: 99, prijs: 0, indoor_friendly: false, lat: 52.2430, lng: 6.5100, duur: "1–2 uur", rating: 4.0, emoji: "🚵", desc: "Gratis mountainbike- en pumptrackpark — eigen fiets meenemen." },
 
   // — Weerribben-Wieden (NW-Overijssel) —
-  { id: 34, name: "Fluisterboot Giethoorn",       plaats: "Giethoorn",    category: "water",      min_age: 0, max_age: 99, prijs: 12, indoor_friendly: false, lat: 52.7380, lng: 6.0780, emoji: "🛶", desc: "Zelf sturen door 'het Venetië van het noorden'." },
-  { id: 35, name: "Kabouterpad Weerribben",       plaats: "Ossenzijl",    category: "natuur",     min_age: 2, max_age: 10, prijs: 0,  indoor_friendly: false, lat: 52.7950, lng: 5.9300, emoji: "🍄", desc: "Speurtocht langs kabouterhuisjes door het moerasnatuurgebied." },
-  { id: 36, name: "Speelnatuur OERRR de Wieden",  plaats: "Sint Jansklooster", category: "natuur",min_age: 0, max_age: 12, prijs: 0,  indoor_friendly: false, lat: 52.6600, lng: 5.9850, emoji: "🌿", desc: "Natuurspeelplek met vlonders, modderkeuken en uitkijktoren." },
-  { id: 37, name: "Klimbos Overijssel",           plaats: "Paasloo",      category: "avontuur",   min_age: 6, max_age: 99, prijs: 20, indoor_friendly: false, lat: 52.8080, lng: 5.9850, emoji: "🧗‍♀️", desc: "Vier klimparcoursen met hindernissen tot negen meter hoog." },
+  { id: 34, name: "Fluisterboot huren in Giethoorn", plaats: "Giethoorn", category: "water", min_age: 0, max_age: 99, prijs: 10, indoor_friendly: false, lat: 52.7380, lng: 6.0780, duur: "halve dag", rating: 4.4, emoji: "🛶", desc: "Zelf varen door 'het Venetië van het noorden' — ± €35 per boot (max 4 pers.)." },
+  { id: 35, name: "Vlonderpad De Wieden", plaats: "Ossenzijl", category: "natuur", min_age: 0, max_age: 99, prijs: 0, indoor_friendly: false, lat: 52.7900, lng: 5.9300, duur: "1–2 uur", rating: 4.5, emoji: "🦆", desc: "Gratis vlonder- en laarzenpad door het moerasnatuurgebied Weerribben-Wieden." },
+  { id: 36, name: "Speelnatuur OERRR de Wieden", plaats: "Sint Jansklooster", category: "natuur", min_age: 0, max_age: 12, prijs: 0, indoor_friendly: false, lat: 52.6600, lng: 5.9850, duur: "1–2 uur", rating: 4.3, emoji: "🌿", desc: "Natuurspeelplek met vlonders, modderkeuken en uitkijktoren (parkeren betaald)." },
+  { id: 37, name: "Klimbos Overijssel", plaats: "Paasloo", category: "avontuur", min_age: 6, max_age: 99, prijs: 24, indoor_friendly: false, lat: 52.8080, lng: 5.9850, duur: "2–3 uur", rating: 4.3, emoji: "🧗", desc: "Vier klimparcoursen met hindernissen tot negen meter hoog (reserveren)." },
 
-  // — Grensicoon (net buiten Overijssel, populair) —
-  { id: 38, name: "WILDLANDS Adventure Zoo",      plaats: "Emmen",        category: "dieren",     min_age: 0, max_age: 99, prijs: 26, indoor_friendly: true,  lat: 52.7850, lng: 6.8970, emoji: "🐘", desc: "Belevenis-dierentuin met jungle, savanne en poolwereld." },
+  // — Grensicoon (net buiten Overijssel, zeer populair) —
+  { id: 38, name: "WILDLANDS Adventure Zoo", plaats: "Emmen", category: "dieren", min_age: 0, max_age: 99, prijs: 32, indoor_friendly: true, lat: 52.7850, lng: 6.8970, duur: "hele dag", rating: 4.2, emoji: "🐘", desc: "Belevenis-dierentuin met jungle, savanne en poolwereld." },
 ];
 
-/* ----------------------------------------------------------------------
- * Leeftijdssynchronisatie-algoritme
- * Een uitje is "gezinsproof" als het leeftijdsbereik van de activiteit
- * de leeftijd van ELK kind omvat — de overlap voor alle kinderen samen.
- * Voor kinderen van 2 én 6 betekent dit: min_age <= 2 EN max_age >= 6.
- * We scoren extra hoog wanneer het bereik strak rond het gezin past.
- * -------------------------------------------------------------------- */
-function ageOverlapWindow(ages) {
-  if (!ages.length) return null;
-  return { low: Math.min(...ages), high: Math.max(...ages) };
-}
-
-function matchesFamilyAges(activity, ages) {
-  // Elk kind moet binnen [min_age, max_age] vallen.
-  return ages.every((a) => a >= activity.min_age && a <= activity.max_age);
-}
-
-function familyFitScore(activity, ages) {
-  // Hoe strakker het activiteitsbereik om het gezin sluit, hoe beter (0..1).
-  const win = ageOverlapWindow(ages);
-  if (!win) return 0;
-  const span = Math.max(1, activity.max_age - activity.min_age);
-  const familySpan = Math.max(1, win.high - win.low);
-  // beloon strakke fit, maar straf een veel te ruim "0-99" bereik licht
-  const tightness = familySpan / span; // 1 = perfect strak
-  const centered =
-    1 -
-    Math.abs(
-      (activity.min_age + activity.max_age) / 2 - (win.low + win.high) / 2
-    ) /
-      50;
+/* ----------------------------------------------------- leeftijdssync */
+function ageWindow(ages) { return ages.length ? { low: Math.min(...ages), high: Math.max(...ages) } : null; }
+function matchesAges(a, ages) { return ages.every((x) => x >= a.min_age && x <= a.max_age); }
+function fitScore(a, ages) {
+  const w = ageWindow(ages); if (!w) return 0;
+  const span = Math.max(1, a.max_age - a.min_age);
+  const familySpan = Math.max(1, w.high - w.low);
+  const tightness = familySpan / span;
+  const centered = 1 - Math.abs((a.min_age + a.max_age) / 2 - (w.low + w.high) / 2) / 50;
   return Math.max(0, tightness * 0.6 + centered * 0.4);
 }
 
-/* ----------------------------------------------------------------------
- * localStorage helpers
- * -------------------------------------------------------------------- */
-function loadJSON(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-function saveJSON(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* ignore quota errors */
-  }
-}
+/* ----------------------------------------------------- storage */
+function loadJSON(k, f) { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : f; } catch { return f; } }
+function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 
-/* ----------------------------------------------------------------------
- * Lucide icon component (CDN) — robuust voor re-renders
- * -------------------------------------------------------------------- */
-function Icon({ name, size = 22, className = "", strokeWidth = 2.4 }) {
+/* ----------------------------------------------------- audio (Web Audio) */
+const Sound = (function () {
+  let ctx = null;
+  let enabled = loadJSON(SOUND_KEY, true);
+  function ac() {
+    if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) ctx = new AC(); }
+    if (ctx && ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+  function tone(c, freq, t0, dur, type, peak) {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    o.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  }
+  return {
+    get enabled() { return enabled; },
+    set(v) { enabled = v; saveJSON(SOUND_KEY, v); if (v) ac(); },
+    unlock() { if (enabled) ac(); },
+    tick() { if (!enabled) return; const c = ac(); if (!c) return; tone(c, 560 + Math.random() * 160, c.currentTime, 0.06, "triangle", 0.045); },
+    whoosh() {
+      if (!enabled) return; const c = ac(); if (!c) return; const t = c.currentTime;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(680, t + 0.18);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.24);
+    },
+    ding() {
+      if (!enabled) return; const c = ac(); if (!c) return; const t = c.currentTime;
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(c, f, t + i * 0.085, 0.55, "sine", 0.16));
+    },
+    blip() { if (!enabled) return; const c = ac(); if (!c) return; tone(c, 660, c.currentTime, 0.09, "sine", 0.08); },
+  };
+})();
+
+function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch {} }
+
+/* ----------------------------------------------------- Lucide icon */
+function Icon({ name, size = 22, className = "", stroke = 2.2 }) {
   const ref = useRef(null);
   useEffect(() => {
     if (window.lucide && ref.current) {
-      window.lucide.createIcons({
-        attrs: { "stroke-width": strokeWidth },
-        nameAttr: "data-lucide",
-        icons: window.lucide.icons,
-      });
+      ref.current.innerHTML = "";
+      ref.current.setAttribute("data-lucide", name);
+      window.lucide.createIcons({ attrs: { "stroke-width": stroke }, nameAttr: "data-lucide" });
     }
   });
-  return (
-    <i
-      ref={ref}
-      data-lucide={name}
-      style={{ width: size, height: size, display: "inline-flex" }}
-      className={className}
-    />
-  );
+  return <i ref={ref} data-lucide={name} style={{ width: size, height: size, display: "inline-flex" }} className={className} />;
 }
 
-/* ----------------------------------------------------------------------
- * UI bits
- * -------------------------------------------------------------------- */
-function Segmented({ value, onChange, options }) {
-  return (
-    <div className="grid grid-cols-3 border-[3px] border-ink hard-shadow-sm bg-white">
-      {options.map((opt, i) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={
-            "py-3 text-sm font-bold uppercase tracking-wide transition-colors " +
-            (i < options.length - 1 ? "border-r-[3px] border-ink " : "") +
-            (value === opt.value
-              ? "bg-ink text-canvas"
-              : "bg-white text-ink hover:bg-teal-50")
-          }
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function Stat({ icon, children }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
-      <Icon name={icon} size={16} />
-      {children}
-    </span>
-  );
-}
-
-/* ----------------------------------------------------------------------
- * Result card
- * -------------------------------------------------------------------- */
-function ResultCard({ activity, distance, isFav, onToggleFav, onAgain }) {
-  const cat = CATEGORIES[activity.category];
-  return (
-    <div className="pop relative w-full max-w-md mx-auto bg-white border-[3px] border-ink hard-shadow">
-      {/* Mondrian colour band */}
-      <div className="flex border-b-[3px] border-ink">
-        <div
-          className="h-3 flex-1"
-          style={{ background: cat.color }}
-        />
-        <div className="h-3 w-10 border-l-[3px] border-ink bg-mond-yellow" />
-        <div className="h-3 w-6 border-l-[3px] border-ink bg-mond-red" />
-      </div>
-
-      <div className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <span
-              className="inline-block text-[11px] font-extrabold uppercase tracking-[.15em] px-2 py-1 border-2 border-ink"
-              style={{ background: cat.color, color: "#fff" }}
-            >
-              {cat.label}
-            </span>
-            <h2 className="font-display text-3xl font-black leading-[1.05] mt-3">
-              {activity.name}
-            </h2>
-          </div>
-          <div className="text-5xl leading-none select-none" aria-hidden="true">
-            {activity.emoji}
-          </div>
-        </div>
-
-        <p className="mt-3 text-[15px] leading-relaxed text-ink/80">
-          {activity.desc}
-        </p>
-
-        <div className="mt-5 grid grid-cols-2 gap-3 text-ink">
-          <Stat icon="map-pin">
-            {activity.plaats} · {distance.toFixed(1)} km
-          </Stat>
-          <Stat icon="euro">{euro(activity.prijs)}</Stat>
-          <Stat icon="users">
-            {activity.min_age}–{activity.max_age} jaar
-          </Stat>
-          <Stat icon={activity.indoor_friendly ? "home" : "sun"}>
-            {activity.indoor_friendly ? "Binnen" : "Buiten"}
-          </Stat>
-        </div>
-
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={onAgain}
-            className="flex-1 inline-flex items-center justify-center gap-2 bg-teal-500 text-white font-display font-black uppercase tracking-wide py-3.5 border-[3px] border-ink hard-shadow-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition"
-          >
-            <Icon name="shuffle" size={18} strokeWidth={3} />
-            Nog een keer
-          </button>
-          <button
-            onClick={onToggleFav}
-            aria-pressed={isFav}
-            aria-label={isFav ? "Verwijder uit favorieten" : "Bewaar favoriet"}
-            className={
-              "w-14 grid place-items-center border-[3px] border-ink hard-shadow-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition " +
-              (isFav ? "bg-mond-red text-white" : "bg-white text-ink")
-            }
-          >
-            <Icon name="heart" size={22} strokeWidth={isFav ? 0.1 : 2.6} className={isFav ? "fill-current" : ""} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ----------------------------------------------------------------------
- * Filter drawer
- * -------------------------------------------------------------------- */
-function FilterDrawer({ open, onClose, prefs, setPrefs, resultCount }) {
-  if (!open) return null;
-
-  const ages = prefs.ages;
-
-  const setAge = (idx, val) => {
-    const next = ages.slice();
-    next[idx] = Math.max(0, Math.min(17, val));
-    setPrefs({ ...prefs, ages: next });
+/* ----------------------------------------------------- stars */
+function Stars({ value, size = 16 }) {
+  const star = (state, i) => {
+    const id = "g" + i + "_" + Math.round(value * 10);
+    return (
+      <svg key={i} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+        {state === "half" && (
+          <defs><linearGradient id={id}><stop offset="50%" stopColor="#F5A623" /><stop offset="50%" stopColor="#E6E6E6" /></linearGradient></defs>
+        )}
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2z"
+          fill={state === "full" ? "#F5A623" : state === "half" ? "url(#" + id + ")" : "#E2E8E5"} />
+      </svg>
+    );
   };
-  const addChild = () =>
-    setPrefs({ ...prefs, ages: [...ages, 4].slice(0, 6) });
-  const removeChild = (idx) =>
-    setPrefs({ ...prefs, ages: ages.filter((_, i) => i !== idx) });
+  const full = Math.floor(value), half = value - full >= 0.4;
+  return (
+    <div className="flex items-center gap-0.5">
+      {[0, 1, 2, 3, 4].map((i) => star(i < full ? "full" : i === full && half ? "half" : "empty", i))}
+      <span className="ml-1.5 text-sm font-bold text-ink">{value.toFixed(1)}</span>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------- visual hero */
+function Hero({ a, h = 200, rounded = "rounded-t-[26px]" }) {
+  const c = CAT[a.category];
+  return (
+    <div className={"relative overflow-hidden " + rounded} style={{ height: h, background: `linear-gradient(135deg, ${c.g[0]}, ${c.g[1]})` }}>
+      <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.55) 1.5px, transparent 0)", backgroundSize: "20px 20px" }} />
+      <div className="absolute -right-6 -top-8 w-40 h-40 rounded-full bg-white/15" />
+      <div className="absolute -left-10 bottom-[-30px] w-48 h-48 rounded-full bg-black/5" />
+      <div className="absolute inset-0 grid place-items-center">
+        <span className="text-[84px] drop-shadow-sm select-none" aria-hidden="true">{a.emoji}</span>
+      </div>
+      <span className="absolute top-3 left-3 text-[11px] font-extrabold uppercase tracking-wider bg-white/85 text-ink px-2.5 py-1 rounded-full">{c.label}</span>
+      <span className="absolute top-3 right-3 text-[11px] font-bold bg-black/25 text-white px-2.5 py-1 rounded-full flex items-center gap-1">
+        <Icon name={a.indoor_friendly ? "home" : "sun"} size={12} stroke={2.6} /> {a.indoor_friendly ? "Binnen" : "Buiten"}
+      </span>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------- small bits */
+function MetaTile({ icon, label, value }) {
+  return (
+    <div className="flex flex-col items-center text-center gap-1 flex-1">
+      <Icon name={icon} size={20} className="text-teal-600" stroke={2.2} />
+      <span className="text-[15px] font-extrabold text-ink leading-none">{value}</span>
+      <span className="text-[11px] text-muted font-semibold uppercase tracking-wide">{label}</span>
+    </div>
+  );
+}
+
+function MiniMap({ a, onOpen }) {
+  return (
+    <button onClick={onOpen} className="relative w-full h-28 rounded-2xl overflow-hidden border border-line group" aria-label="Open route in kaart">
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#dff0ec,#c7e6df)" }} />
+      <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+        <g stroke="#a9d6cc" strokeWidth="2" fill="none">
+          <path d="M-10 40 Q120 10 260 60 T520 30" /><path d="M-10 90 Q140 70 280 100 T520 80" />
+          <path d="M60 -10 Q90 80 50 200" /><path d="M210 -10 Q240 90 200 200" /><path d="M360 -10 Q330 80 380 200" />
+        </g>
+      </svg>
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
+        <Icon name="map-pin" size={34} className="text-teal-600 drop-shadow" stroke={2.6} />
+      </div>
+      <span className="absolute bottom-2 right-2 bg-white/90 text-ink text-[11px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+        <Icon name="navigation" size={12} stroke={2.6} /> {a.plaats}
+      </span>
+    </button>
+  );
+}
+
+function mapsUrl(a) { return "https://www.google.com/maps/dir/?api=1&destination=" + a.lat + "," + a.lng + "&travelmode=driving"; }
+
+/* ----------------------------------------------------- detail screen */
+function DetailView({ a, isFav, onFav, onBack, onNext }) {
+  return (
+    <div className="fixed inset-0 z-40 bg-mint flex flex-col fade">
+      <header className="flex items-center justify-between px-4 pt-4 pb-2">
+        <button onClick={onBack} className="w-11 h-11 grid place-items-center rounded-full bg-white shadow-card active:scale-95 transition" aria-label="Terug">
+          <Icon name="chevron-left" size={24} stroke={2.6} />
+        </button>
+        <h1 className="font-display font-extrabold tracking-tight text-ink">Activiteit</h1>
+        <button onClick={onFav} aria-pressed={isFav} aria-label="Bewaar favoriet"
+          className={"w-11 h-11 grid place-items-center rounded-full shadow-card active:scale-95 transition " + (isFav ? "bg-rose-500 text-white" : "bg-white text-ink")}>
+          <Icon name="heart" size={22} stroke={isFav ? 0 : 2.4} className={isFav ? "fill-current" : ""} />
+        </button>
+      </header>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-32">
+        <div className="bg-white rounded-[28px] shadow-soft overflow-hidden pop">
+          <Hero a={a} />
+          <div className="p-5">
+            <h2 className="font-display text-[26px] leading-tight font-extrabold text-ink">{a.name}</h2>
+            <div className="mt-1 flex items-center gap-2 text-muted font-semibold">
+              <Icon name="map-pin" size={15} /> {a.plaats}
+            </div>
+            <div className="mt-3"><Stars value={a.rating} /></div>
+
+            <div className="mt-5 flex items-stretch gap-2 bg-mint rounded-2xl p-3">
+              <MetaTile icon="route" label="Afstand" value={a.distance.toFixed(0) + " km"} />
+              <div className="w-px bg-line" />
+              <MetaTile icon="badge-euro" label="Prijs" value={euro(a.prijs)} />
+              <div className="w-px bg-line" />
+              <MetaTile icon="clock" label="Duur" value={a.duur} />
+              <div className="w-px bg-line" />
+              <MetaTile icon="users" label="Leeftijd" value={a.min_age + "–" + a.max_age} />
+            </div>
+
+            <p className="mt-4 text-[15px] leading-relaxed text-ink/80">{a.desc}</p>
+
+            <div className="mt-4"><MiniMap a={a} onOpen={() => window.open(mapsUrl(a), "_blank", "noopener")} /></div>
+          </div>
+        </div>
+        <p className="text-center text-[11px] text-muted/80 mt-3">Prijs, duur en beoordeling zijn indicatief — check de website.</p>
+      </div>
+
+      <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-mint via-mint to-transparent">
+        <div className="flex gap-3 max-w-md mx-auto">
+          <a href={mapsUrl(a)} target="_blank" rel="noopener"
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-teal-500 text-white font-display font-extrabold py-4 rounded-2xl shadow-card active:scale-[.98] transition">
+            <Icon name="navigation" size={20} stroke={2.6} /> Route
+          </a>
+          <button onClick={onNext}
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-white text-ink font-display font-extrabold py-4 rounded-2xl shadow-card active:scale-[.98] transition border border-line">
+            <Icon name="shuffle" size={20} stroke={2.6} /> Volgende
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------- roulette overlay */
+function RouletteOverlay({ preview }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-mint/70 backdrop-blur-sm fade">
+      <div className="text-center">
+        <div className="w-64 h-44 rounded-[28px] bg-white shadow-soft overflow-hidden mx-auto relative">
+          {preview && (
+            <div key={preview.id} className="win-in h-full flex flex-col">
+              <div className="h-24" style={{ background: `linear-gradient(135deg, ${CAT[preview.category].g[0]}, ${CAT[preview.category].g[1]})` }}>
+                <div className="h-full grid place-items-center"><span className="text-5xl">{preview.emoji}</span></div>
+              </div>
+              <div className="flex-1 grid place-items-center px-3">
+                <span className="font-display font-extrabold text-ink leading-tight text-[15px]">{preview.name}</span>
+              </div>
+            </div>
+          )}
+        </div>
+        <p className="mt-5 font-display font-extrabold text-teal-700 text-lg tracking-wide flex items-center justify-center gap-2">
+          <Icon name="sparkles" size={20} /> We kiezen een uitje…
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------- filters sheet */
+function Chip({ active, onClick, children }) {
+  return (
+    <button onClick={onClick}
+      className={"px-4 py-2 rounded-full text-sm font-bold border transition active:scale-95 " +
+        (active ? "bg-teal-500 text-white border-teal-500 shadow-card" : "bg-white text-ink border-line")}>
+      {children}
+    </button>
+  );
+}
+
+function FiltersSheet({ open, onClose, prefs, setPrefs, count }) {
+  if (!open) return null;
+  const ages = prefs.ages;
+  const setAge = (i, v) => { const n = ages.slice(); n[i] = Math.max(0, Math.min(17, v)); setPrefs({ ...prefs, ages: n }); };
+  const addChild = () => setPrefs({ ...prefs, ages: [...ages, 4].slice(0, 6) });
+  const delChild = (i) => setPrefs({ ...prefs, ages: ages.filter((_, x) => x !== i) });
+  const toggleArr = (key, val) => {
+    const cur = prefs[key]; const next = cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val];
+    setPrefs({ ...prefs, [key]: next });
+  };
+  const budgets = [["gratis", "Gratis"], ["low", "€"], ["mid", "€€"], ["high", "€€€"]];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div
-        className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
-        onClick={onClose}
-      />
-      <aside className="drawer-in relative w-full max-w-sm h-full bg-canvas border-l-[3px] border-ink overflow-y-auto no-scrollbar">
-        <header className="sticky top-0 bg-canvas border-b-[3px] border-ink px-5 py-4 flex items-center justify-between z-10">
-          <h2 className="font-display text-2xl font-black uppercase tracking-tight flex items-center gap-2">
-            <Icon name="sliders-horizontal" size={22} strokeWidth={3} />
-            Filters
-          </h2>
-          <button
-            onClick={onClose}
-            aria-label="Sluiten"
-            className="w-10 h-10 grid place-items-center border-[3px] border-ink bg-white hard-shadow-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition"
-          >
-            <Icon name="x" size={20} strokeWidth={3} />
-          </button>
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="absolute inset-0 bg-ink/40 fade" onClick={onClose} />
+      <div className="sheet-in relative bg-mint rounded-t-[28px] max-h-[90dvh] flex flex-col">
+        <div className="pt-3 flex justify-center"><div className="w-12 h-1.5 rounded-full bg-ink/15" /></div>
+        <header className="px-5 py-3 flex items-center justify-between">
+          <h2 className="font-display text-xl font-extrabold flex items-center gap-2"><Icon name="sliders-horizontal" size={22} stroke={2.6} /> Instellingen</h2>
+          <button onClick={onClose} className="w-9 h-9 grid place-items-center rounded-full bg-white shadow-card active:scale-95" aria-label="Sluiten"><Icon name="x" size={18} stroke={2.6} /></button>
         </header>
 
-        <div className="px-5 py-6 space-y-8">
-          {/* Kinderen / leeftijden */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-black uppercase tracking-wide text-lg">
-                Kinderen
-              </h3>
-              <button
-                onClick={addChild}
-                disabled={ages.length >= 6}
-                className="inline-flex items-center gap-1 text-sm font-bold px-2.5 py-1.5 border-2 border-ink bg-mond-yellow disabled:opacity-40"
-              >
-                <Icon name="plus" size={14} strokeWidth={3} /> Kind
-              </button>
-            </div>
-            <p className="text-sm text-ink/70 mb-4">
-              We zoeken de overlap zodat het uitje voor iederéén leuk is.
-            </p>
-            <div className="space-y-3">
-              {ages.map((age, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 bg-white border-[3px] border-ink px-3 py-2 hard-shadow-sm"
-                >
-                  <Icon name="baby" size={18} />
-                  <span className="text-sm font-bold w-16">Kind {idx + 1}</span>
-                  <button
-                    onClick={() => setAge(idx, age - 1)}
-                    className="w-8 h-8 grid place-items-center border-2 border-ink bg-canvas font-black"
-                    aria-label="Jonger"
-                  >
-                    –
-                  </button>
-                  <span className="font-display font-black text-xl w-12 text-center tabular-nums">
-                    {age}
-                  </span>
-                  <button
-                    onClick={() => setAge(idx, age + 1)}
-                    className="w-8 h-8 grid place-items-center border-2 border-ink bg-canvas font-black"
-                    aria-label="Ouder"
-                  >
-                    +
-                  </button>
-                  <span className="text-xs text-ink/60">jr</span>
-                  {ages.length > 1 && (
-                    <button
-                      onClick={() => removeChild(idx)}
-                      className="ml-auto text-ink/50 hover:text-mond-red"
-                      aria-label="Verwijder kind"
-                    >
-                      <Icon name="trash-2" size={16} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Straal */}
+        <div className="px-5 pb-4 overflow-y-auto no-scrollbar space-y-6">
+          {/* Afstand */}
           <section>
             <div className="flex items-baseline justify-between mb-2">
-              <h3 className="font-display font-black uppercase tracking-wide text-lg">
-                Straal
-              </h3>
-              <span className="font-display font-black text-xl tabular-nums">
-                {prefs.radius} km
-              </span>
+              <h3 className="font-display font-extrabold uppercase tracking-wide text-sm text-muted">Afstand</h3>
+              <span className="font-display font-extrabold text-ink">{prefs.radius} km</span>
             </div>
-            <p className="text-sm text-ink/70 mb-3">
-              Hemelsbrede afstand vanaf {HARDENBERG.name}.
-            </p>
-            <input
-              type="range"
-              min="2"
-              max="120"
-              step="1"
-              value={prefs.radius}
-              onChange={(e) =>
-                setPrefs({ ...prefs, radius: +e.target.value })
-              }
-            />
+            <input type="range" min="2" max="100" value={prefs.radius}
+              style={{ "--p": ((prefs.radius - 2) / 98) * 100 + "%" }}
+              onChange={(e) => setPrefs({ ...prefs, radius: +e.target.value })} />
+            <div className="flex justify-between text-[11px] text-muted font-semibold mt-1"><span>2 km</span><span>100 km</span></div>
           </section>
 
           {/* Budget */}
           <section>
-            <div className="flex items-baseline justify-between mb-2">
-              <h3 className="font-display font-black uppercase tracking-wide text-lg">
-                Budget
-              </h3>
-              <span className="font-display font-black text-xl tabular-nums">
-                {prefs.maxBudget >= 30 ? "€30+" : euro(prefs.maxBudget)}
-              </span>
+            <h3 className="font-display font-extrabold uppercase tracking-wide text-sm text-muted mb-2">Budget</h3>
+            <div className="flex gap-2">
+              {budgets.map(([v, l]) => <Chip key={v} active={prefs.budgets.includes(v)} onClick={() => toggleArr("budgets", v)}>{l}</Chip>)}
             </div>
-            <p className="text-sm text-ink/70 mb-3">Maximale prijs per persoon.</p>
-            <input
-              type="range"
-              min="0"
-              max="30"
-              step="1"
-              value={prefs.maxBudget}
-              onChange={(e) =>
-                setPrefs({ ...prefs, maxBudget: +e.target.value })
-              }
-            />
           </section>
 
-          {/* Binnen / buiten */}
+          {/* Wie gaat er mee */}
           <section>
-            <h3 className="font-display font-black uppercase tracking-wide text-lg mb-3">
-              Binnen of buiten
-            </h3>
-            <Segmented
-              value={prefs.environment}
-              onChange={(v) => setPrefs({ ...prefs, environment: v })}
-              options={[
-                { value: "all", label: "Alles" },
-                { value: "indoor", label: "Binnen" },
-                { value: "outdoor", label: "Buiten" },
-              ]}
-            />
+            <h3 className="font-display font-extrabold uppercase tracking-wide text-sm text-muted mb-2">Wie gaat er mee?</h3>
+            <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-card mb-3">
+              <span className="font-bold text-ink flex items-center gap-2"><Icon name="user" size={18} /> Volwassenen</span>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setPrefs({ ...prefs, adults: Math.max(1, prefs.adults - 1) })} className="w-9 h-9 rounded-full bg-mint grid place-items-center font-black active:scale-90" aria-label="Minder">−</button>
+                <span className="font-display font-extrabold text-lg w-6 text-center">{prefs.adults}</span>
+                <button onClick={() => setPrefs({ ...prefs, adults: Math.min(8, prefs.adults + 1) })} className="w-9 h-9 rounded-full bg-mint grid place-items-center font-black active:scale-90" aria-label="Meer">+</button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-ink flex items-center gap-2"><Icon name="baby" size={18} /> Kinderen & leeftijd</span>
+              <button onClick={addChild} disabled={ages.length >= 6} className="text-sm font-bold text-teal-700 flex items-center gap-1 disabled:opacity-40"><Icon name="plus" size={15} stroke={3} /> Kind</button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ages.map((age, i) => (
+                <div key={i} className="flex items-center gap-2 bg-white rounded-full pl-3 pr-1.5 py-1.5 shadow-card">
+                  <button onClick={() => setAge(i, age - 1)} className="w-7 h-7 rounded-full bg-mint grid place-items-center font-black active:scale-90" aria-label="Jonger">−</button>
+                  <span className="font-display font-extrabold w-8 text-center tabular-nums">{age}<span className="text-[10px] text-muted">jr</span></span>
+                  <button onClick={() => setAge(i, age + 1)} className="w-7 h-7 rounded-full bg-mint grid place-items-center font-black active:scale-90" aria-label="Ouder">+</button>
+                  {ages.length > 1 && <button onClick={() => delChild(i)} className="w-7 h-7 grid place-items-center text-muted hover:text-rose-500" aria-label="Verwijder"><Icon name="x" size={15} stroke={2.6} /></button>}
+                </div>
+              ))}
+            </div>
+            <p className="text-[12px] text-muted mt-2">We zoeken de overlap zodat het uitje voor iederéén leuk is.</p>
+          </section>
+
+          {/* Soort uitje */}
+          <section>
+            <h3 className="font-display font-extrabold uppercase tracking-wide text-sm text-muted mb-2">Soort uitje</h3>
+            <div className="flex flex-wrap gap-2">
+              {Object.keys(CAT).map((k) => <Chip key={k} active={!prefs.excludeCats.includes(k)} onClick={() => toggleArr("excludeCats", k)}>{CAT[k].label}</Chip>)}
+            </div>
+          </section>
+
+          {/* Alleen binnen */}
+          <section>
+            <button onClick={() => setPrefs({ ...prefs, indoorOnly: !prefs.indoorOnly })} className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-card">
+              <span className="font-bold text-ink flex items-center gap-2"><Icon name="home" size={18} /> Alleen binnen</span>
+              <span className="switch" data-on={prefs.indoorOnly}><span className="knob" /></span>
+            </button>
           </section>
         </div>
 
-        <footer className="sticky bottom-0 bg-canvas border-t-[3px] border-ink px-5 py-4">
-          <button
-            onClick={onClose}
-            className="w-full bg-teal-500 text-white font-display font-black uppercase tracking-wide py-3.5 border-[3px] border-ink hard-shadow-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition"
-          >
-            Toon {resultCount} {resultCount === 1 ? "uitje" : "uitjes"}
+        <div className="p-4 border-t border-line bg-mint">
+          <button onClick={onClose} className="w-full bg-teal-500 text-white font-display font-extrabold py-4 rounded-2xl shadow-card active:scale-[.98] transition">
+            Toon {count} {count === 1 ? "uitje" : "uitjes"}
           </button>
-        </footer>
-      </aside>
-    </div>
-  );
-}
-
-/* ----------------------------------------------------------------------
- * Favorites view
- * -------------------------------------------------------------------- */
-function FavoritesView({ favIds, onClose, onRemove }) {
-  const favs = ACTIVITIES.filter((a) => favIds.includes(a.id)).map((a) => ({
-    ...a,
-    distance: haversine(HARDENBERG.lat, HARDENBERG.lng, a.lat, a.lng),
-  }));
-
-  return (
-    <div className="fixed inset-0 z-40 bg-canvas overflow-y-auto no-scrollbar">
-      <header className="sticky top-0 bg-canvas border-b-[3px] border-ink px-5 py-4 flex items-center justify-between z-10">
-        <h2 className="font-display text-2xl font-black uppercase tracking-tight flex items-center gap-2">
-          <Icon name="heart" size={22} strokeWidth={3} className="text-mond-red fill-current" />
-          Favorieten
-        </h2>
-        <button
-          onClick={onClose}
-          aria-label="Sluiten"
-          className="w-10 h-10 grid place-items-center border-[3px] border-ink bg-white hard-shadow-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition"
-        >
-          <Icon name="x" size={20} strokeWidth={3} />
-        </button>
-      </header>
-
-      <div className="max-w-md mx-auto px-5 py-6">
-        {favs.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">📌</div>
-            <p className="font-display text-2xl font-black uppercase">
-              Nog niks bewaard
-            </p>
-            <p className="text-ink/70 mt-2">
-              Tik op het hartje bij een uitje om het hier te bewaren.
-            </p>
-          </div>
-        ) : (
-          <ul className="space-y-4">
-            {favs.map((a) => {
-              const cat = CATEGORIES[a.category];
-              return (
-                <li
-                  key={a.id}
-                  className="rise bg-white border-[3px] border-ink hard-shadow-sm flex"
-                >
-                  <div
-                    className="w-3 shrink-0"
-                    style={{ background: cat.color }}
-                  />
-                  <div className="p-4 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-display font-black text-lg leading-tight">
-                        {a.emoji} {a.name}
-                      </h3>
-                      <button
-                        onClick={() => onRemove(a.id)}
-                        aria-label="Verwijder favoriet"
-                        className="text-ink/40 hover:text-mond-red shrink-0"
-                      >
-                        <Icon name="trash-2" size={18} />
-                      </button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-ink/80">
-                      <Stat icon="map-pin">
-                        {a.plaats} · {a.distance.toFixed(1)} km
-                      </Stat>
-                      <Stat icon="euro">{euro(a.prijs)}</Stat>
-                      <Stat icon="users">
-                        {a.min_age}–{a.max_age} jr
-                      </Stat>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ----------------------------------------------------------------------
- * App
- * -------------------------------------------------------------------- */
-function App() {
-  const [prefs, setPrefs] = useState(() =>
-    loadJSON(PREFS_KEY, {
-      ages: [2, 6], // de kern-overlap: peuter + kleuter
-      radius: 75,
-      maxBudget: 30,
-      environment: "all",
-    })
+/* ----------------------------------------------------- list card (favorites) */
+function ListCard({ a, onOpen, onRemove }) {
+  return (
+    <div className="rise bg-white rounded-3xl shadow-card overflow-hidden flex">
+      <div className="w-24 shrink-0 relative" style={{ background: `linear-gradient(135deg, ${CAT[a.category].g[0]}, ${CAT[a.category].g[1]})` }}>
+        <div className="absolute inset-0 grid place-items-center text-4xl">{a.emoji}</div>
+      </div>
+      <button onClick={onOpen} className="flex-1 text-left p-3.5">
+        <h3 className="font-display font-extrabold text-ink leading-tight">{a.name}</h3>
+        <div className="text-[13px] text-muted font-semibold flex items-center gap-1 mt-0.5"><Icon name="map-pin" size={13} /> {a.plaats} · {a.distance.toFixed(0)} km</div>
+        <div className="mt-1.5 flex items-center gap-3 text-[13px] font-bold text-ink">
+          <span className="flex items-center gap-1"><Icon name="badge-euro" size={13} className="text-teal-600" /> {euro(a.prijs)}</span>
+          <span className="flex items-center gap-1"><Icon name="star" size={13} className="text-amber" /> {a.rating.toFixed(1)}</span>
+        </div>
+      </button>
+      <button onClick={onRemove} className="px-3 text-muted hover:text-rose-500 self-stretch" aria-label="Verwijder favoriet"><Icon name="trash-2" size={18} /></button>
+    </div>
   );
+}
+
+/* ----------------------------------------------------- App */
+function App() {
+  const [tab, setTab] = useState("home");
+  const [prefs, setPrefs] = useState(() => loadJSON(PREFS_KEY, {
+    ages: [2, 6], adults: 2, radius: 75, budgets: ["gratis", "low", "mid", "high"], excludeCats: [], indoorOnly: false,
+  }));
   const [favIds, setFavIds] = useState(() => loadJSON(FAV_KEY, []));
-  const [result, setResult] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showFavs, setShowFavs] = useState(false);
-  const [spinning, setSpinning] = useState(false);
-  const [emptyHint, setEmptyHint] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [rolling, setRolling] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [empty, setEmpty] = useState(false);
+  const [soundOn, setSoundOn] = useState(Sound.enabled);
+  const lastId = useRef(null);
 
   useEffect(() => saveJSON(PREFS_KEY, prefs), [prefs]);
   useEffect(() => saveJSON(FAV_KEY, favIds), [favIds]);
 
-  // Gefilterde + leeftijdsgesynchroniseerde kandidaten
-  const candidates = useMemo(() => {
-    return ACTIVITIES.map((a) => ({
-      ...a,
-      distance: haversine(HARDENBERG.lat, HARDENBERG.lng, a.lat, a.lng),
-    }))
-      .filter((a) => matchesFamilyAges(a, prefs.ages))
-      .filter((a) => a.distance <= prefs.radius)
-      .filter((a) => a.prijs <= prefs.maxBudget || prefs.maxBudget >= 30)
-      .filter((a) =>
-        prefs.environment === "all"
-          ? true
-          : prefs.environment === "indoor"
-          ? a.indoor_friendly
-          : !a.indoor_friendly
-      )
-      .map((a) => ({ ...a, fit: familyFitScore(a, prefs.ages) }));
-  }, [prefs]);
+  const withMeta = (a) => ({ ...a, distance: haversine(HARDENBERG.lat, HARDENBERG.lng, a.lat, a.lng) });
 
-  // Als de huidige keuze buiten de filters valt, wis 'm
-  useEffect(() => {
-    if (result && !candidates.some((c) => c.id === result.id)) {
-      setResult(null);
-    }
-  }, [candidates]); // eslint-disable-line
+  const candidates = useMemo(() => ACTIVITIES.map(withMeta)
+    .filter((a) => matchesAges(a, prefs.ages))
+    .filter((a) => a.distance <= prefs.radius)
+    .filter((a) => prefs.budgets.includes(priceTier(a.prijs)))
+    .filter((a) => !prefs.excludeCats.includes(a.category))
+    .filter((a) => (prefs.indoorOnly ? a.indoor_friendly : true))
+    .map((a) => ({ ...a, fit: fitScore(a, prefs.ages) })), [prefs]);
 
-  const pick = useCallback(() => {
-    if (!candidates.length) {
-      setEmptyHint(true);
-      setResult(null);
-      return;
-    }
-    setEmptyHint(false);
-    setSpinning(true);
-
-    // Gewogen trekking: betere familie-fit krijgt iets meer kans,
-    // maar vermijd direct hetzelfde uitje als vorige keer.
-    const pool = candidates.filter((c) => !result || c.id !== result.id);
+  const weightedPick = useCallback(() => {
+    const pool = candidates.filter((c) => c.id !== lastId.current);
     const draw = pool.length ? pool : candidates;
-    const weighted = [];
-    draw.forEach((c) => {
-      const w = 1 + Math.round(c.fit * 3);
-      for (let i = 0; i < w; i++) weighted.push(c);
-    });
-    const chosen = weighted[Math.floor(Math.random() * weighted.length)];
+    const bag = [];
+    draw.forEach((c) => { const w = 1 + Math.round(c.fit * 3); for (let i = 0; i < w; i++) bag.push(c); });
+    return bag[Math.floor(Math.random() * bag.length)];
+  }, [candidates]);
 
-    window.setTimeout(() => {
-      setResult(chosen);
-      setSpinning(false);
-    }, 420);
-  }, [candidates, result]);
+  const roll = useCallback(() => {
+    if (rolling) return;
+    if (!candidates.length) { setEmpty(true); setDetail(null); return; }
+    setEmpty(false); Sound.unlock(); Sound.whoosh(); vibrate(12); setRolling(true);
+    const total = 14; let i = 0;
+    const step = () => {
+      setPreview(candidates[Math.floor(Math.random() * candidates.length)]);
+      Sound.tick(); i++;
+      if (i < total) setTimeout(step, 45 + i * i * 1.1);
+      else {
+        const chosen = weightedPick(); lastId.current = chosen.id;
+        setRolling(false); setPreview(null); setDetail(chosen); setTab("home");
+        Sound.ding(); vibrate([18, 40, 18]);
+      }
+    };
+    step();
+  }, [rolling, candidates, weightedPick]);
 
-  const toggleFav = (id) =>
-    setFavIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-
-  const win = ageOverlapWindow(prefs.ages);
+  const toggleFav = (id) => setFavIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const w = ageWindow(prefs.ages);
+  const favs = ACTIVITIES.filter((a) => favIds.includes(a.id)).map(withMeta);
 
   return (
-    <div className="relative z-10 min-h-[100dvh] flex flex-col">
-      {/* Top bar */}
-      <header className="px-5 pt-5 pb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 border-[3px] border-ink grid grid-cols-2 grid-rows-2 overflow-hidden">
-            <div className="bg-teal-500" />
-            <div className="bg-mond-yellow border-l-[3px] border-ink" />
-            <div className="bg-canvas border-t-[3px] border-ink" />
-            <div className="bg-mond-red border-l-[3px] border-t-[3px] border-ink" />
+    <div className="relative mx-auto max-w-md min-h-[100dvh] pb-24">
+      {/* ---------- HOME ---------- */}
+      {tab === "home" && (
+        <div className="px-5 pt-6 fade">
+          <header className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-teal-500 grid place-items-center shadow-card">
+                <Icon name="sparkles" size={20} className="text-white" stroke={2.6} />
+              </div>
+              <span className="font-display text-2xl font-extrabold tracking-tight">Hup!</span>
+            </div>
+            <button onClick={() => setFiltersOpen(true)} className="flex flex-col items-center text-muted active:scale-95" aria-label="Filters">
+              <div className="w-11 h-11 rounded-full bg-white grid place-items-center shadow-card"><Icon name="sliders-horizontal" size={20} stroke={2.4} /></div>
+            </button>
+          </header>
+
+          <div className="text-center mt-10">
+            <p className="inline-block text-xs font-extrabold uppercase tracking-[.18em] text-teal-700 bg-teal-100/70 px-3 py-1.5 rounded-full">Voor het hele gezin</p>
+            <h1 className="font-display text-[clamp(2.2rem,9vw,3rem)] font-extrabold leading-[1.05] tracking-tight mt-4 text-ink">Geen inspiratie?</h1>
+            <p className="mt-3 text-[15px] text-muted leading-relaxed max-w-xs mx-auto">Eén tik en we kiezen een uitje dat precies past bij jouw gezin.</p>
           </div>
-          <span className="font-display text-2xl font-black tracking-tight">
-            Hup!
-          </span>
+
+          <div className="flex flex-col items-center mt-10">
+            <button onClick={roll} disabled={rolling}
+              className="hup-btn hup-pulse relative w-52 h-52 rounded-full bg-teal-500 text-white grid place-items-center shadow-soft active:shadow-card"
+              aria-label="Kies een uitje">
+              <div className="flex flex-col items-center">
+                <Icon name="sparkles" size={26} className="text-white/90 mb-1" stroke={2.4} />
+                <span className="font-display text-6xl font-extrabold tracking-tight">Hup!</span>
+              </div>
+            </button>
+            <p className="mt-7 text-[13px] font-semibold text-muted flex items-center gap-1.5">
+              <Icon name="users" size={14} /> {prefs.ages.length} {prefs.ages.length === 1 ? "kind" : "kinderen"} · overlap {w.low}–{w.high} jr · {candidates.length} {candidates.length === 1 ? "match" : "matches"}
+            </p>
+          </div>
+
+          {empty && (
+            <div className="rise mt-8 bg-white rounded-3xl shadow-card p-5 text-center">
+              <div className="text-4xl mb-2">🧭</div>
+              <p className="font-display font-extrabold text-lg text-ink">Niks gevonden</p>
+              <p className="text-sm text-muted mt-1">Geen uitje matcht deze filters. Verruim de straal of het budget.</p>
+              <button onClick={() => setFiltersOpen(true)} className="mt-3 inline-flex items-center gap-2 text-teal-700 font-bold"><Icon name="sliders-horizontal" size={16} /> Pas filters aan</button>
+            </div>
+          )}
+
+          {detail && !empty && (
+            <button onClick={() => setDetail(detail)} className="rise mt-8 w-full bg-white rounded-3xl shadow-card overflow-hidden flex text-left">
+              <div className="w-24 shrink-0 relative" style={{ background: `linear-gradient(135deg, ${CAT[detail.category].g[0]}, ${CAT[detail.category].g[1]})` }}>
+                <div className="absolute inset-0 grid place-items-center text-4xl">{detail.emoji}</div>
+              </div>
+              <div className="flex-1 p-3.5">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-teal-700">Laatst gekozen</p>
+                <h3 className="font-display font-extrabold text-ink leading-tight mt-0.5">{detail.name}</h3>
+                <div className="text-[13px] text-muted font-semibold flex items-center gap-1 mt-0.5"><Icon name="map-pin" size={13} /> {detail.plaats} · {detail.distance.toFixed(0)} km</div>
+              </div>
+              <div className="self-center pr-4 text-muted"><Icon name="chevron-right" size={22} /></div>
+            </button>
+          )}
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowFavs(true)}
-            aria-label="Favorieten"
-            className="relative w-11 h-11 grid place-items-center border-[3px] border-ink bg-white hard-shadow-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition"
-          >
-            <Icon name="heart" size={20} strokeWidth={2.6} />
-            {favIds.length > 0 && (
-              <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 grid place-items-center text-xs font-black bg-mond-red text-white border-2 border-ink">
-                {favIds.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Filters"
-            className="w-11 h-11 grid place-items-center border-[3px] border-ink bg-teal-500 text-white hard-shadow-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition"
-          >
-            <Icon name="sliders-horizontal" size={20} strokeWidth={2.8} />
-          </button>
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-center px-5 py-6">
-        {!result && (
-          <div className="rise text-center max-w-md">
-            <p className="inline-block text-xs font-extrabold uppercase tracking-[.2em] px-3 py-1.5 border-2 border-ink bg-mond-yellow mb-6">
-              Voor het hele gezin
-            </p>
-            <h1 className="font-display text-[clamp(2.6rem,11vw,4.5rem)] font-black uppercase leading-[0.9] tracking-tight">
-              Geen<br />inspiratie?
-            </h1>
-            <p className="mt-5 text-lg text-ink/75 leading-relaxed">
-              Eén tik en we kiezen een uitje dat precies past bij jouw gezin.
-            </p>
-          </div>
-        )}
-
-        {result && (
-          <div className="w-full">
-            <ResultCard
-              activity={result}
-              distance={result.distance}
-              isFav={favIds.includes(result.id)}
-              onToggleFav={() => toggleFav(result.id)}
-              onAgain={pick}
-            />
-          </div>
-        )}
-
-        {emptyHint && !result && (
-          <div className="rise mt-8 max-w-md text-center bg-white border-[3px] border-ink hard-shadow-sm p-5">
-            <div className="text-4xl mb-2">🤔</div>
-            <p className="font-display font-black text-xl uppercase">
-              Niks gevonden
-            </p>
-            <p className="text-ink/70 mt-1 text-sm">
-              Geen uitje matcht deze filters. Verruim de straal of het budget in de filters.
-            </p>
-          </div>
-        )}
-
-        {/* De grote Hup-knop */}
-        <div className="mt-10 flex flex-col items-center">
-          <button
-            onClick={pick}
-            disabled={spinning}
-            className="hup-btn relative w-44 h-44 sm:w-52 sm:h-52 rounded-full bg-teal-500 text-white grid place-items-center select-none disabled:opacity-90"
-            aria-label="Kies een uitje"
-          >
-            {spinning ? (
-              <span className="flex gap-2" aria-hidden="true">
-                <span className="w-3 h-3 rounded-full bg-white" style={{ animation: "dotpulse 1s infinite", animationDelay: "0ms" }} />
-                <span className="w-3 h-3 rounded-full bg-white" style={{ animation: "dotpulse 1s infinite", animationDelay: "150ms" }} />
-                <span className="w-3 h-3 rounded-full bg-white" style={{ animation: "dotpulse 1s infinite", animationDelay: "300ms" }} />
-              </span>
-            ) : (
-              <span className="font-display text-6xl sm:text-7xl font-black tracking-tight -mt-1">
-                Hup!
-              </span>
-            )}
-          </button>
-          <p className="mt-6 text-sm font-semibold text-ink/60 flex items-center gap-2">
-            <Icon name="users" size={15} />
-            {prefs.ages.length} {prefs.ages.length === 1 ? "kind" : "kinderen"} ·
-            overlap {win.low}–{win.high} jr · {candidates.length}{" "}
-            {candidates.length === 1 ? "match" : "matches"}
-          </p>
-        </div>
-      </main>
-
-      <footer className="px-5 py-4 text-center text-xs text-ink/45 font-semibold">
-        Startlocatie {HARDENBERG.name} · afstanden hemelsbreed (Haversine)
-      </footer>
-
-      <FilterDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        prefs={prefs}
-        setPrefs={setPrefs}
-        resultCount={candidates.length}
-      />
-
-      {showFavs && (
-        <FavoritesView
-          favIds={favIds}
-          onClose={() => setShowFavs(false)}
-          onRemove={(id) => toggleFav(id)}
-        />
       )}
+
+      {/* ---------- FAVORITES ---------- */}
+      {tab === "favorites" && (
+        <div className="px-5 pt-6 fade">
+          <h1 className="font-display text-2xl font-extrabold tracking-tight flex items-center gap-2"><Icon name="heart" size={24} className="text-rose-500 fill-current" stroke={0} /> Favorieten</h1>
+          {favs.length === 0 ? (
+            <div className="text-center py-24">
+              <div className="text-6xl mb-3">📌</div>
+              <p className="font-display text-xl font-extrabold text-ink">Nog niks bewaard</p>
+              <p className="text-muted mt-1 text-sm">Tik op het hartje bij een uitje om het hier te bewaren.</p>
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {favs.map((a) => <ListCard key={a.id} a={a} onOpen={() => setDetail(a)} onRemove={() => toggleFav(a.id)} />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ---------- PROFILE ---------- */}
+      {tab === "profile" && (
+        <div className="px-5 pt-6 fade">
+          <h1 className="font-display text-2xl font-extrabold tracking-tight flex items-center gap-2"><Icon name="user" size={24} /> Profiel</h1>
+
+          <div className="mt-5 bg-white rounded-3xl shadow-card p-5">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-teal-500 grid place-items-center text-white shadow-card"><Icon name="sparkles" size={26} stroke={2.4} /></div>
+              <div>
+                <p className="font-display font-extrabold text-lg text-ink">Hup! Gezin</p>
+                <p className="text-sm text-muted">Startlocatie {HARDENBERG.name}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-white rounded-3xl shadow-card divide-y divide-line">
+            <button onClick={() => { const v = !soundOn; setSoundOn(v); Sound.set(v); if (v) Sound.blip(); }} className="w-full flex items-center justify-between px-5 py-4">
+              <span className="font-bold text-ink flex items-center gap-3"><Icon name={soundOn ? "volume-2" : "volume-x"} size={20} className="text-teal-600" /> Geluid</span>
+              <span className="switch" data-on={soundOn}><span className="knob" /></span>
+            </button>
+            <button onClick={() => setFiltersOpen(true)} className="w-full flex items-center justify-between px-5 py-4">
+              <span className="font-bold text-ink flex items-center gap-3"><Icon name="sliders-horizontal" size={20} className="text-teal-600" /> Filters & gezin</span>
+              <Icon name="chevron-right" size={20} className="text-muted" />
+            </button>
+            <button onClick={() => { if (confirm("Alle favorieten verwijderen?")) setFavIds([]); }} className="w-full flex items-center justify-between px-5 py-4">
+              <span className="font-bold text-ink flex items-center gap-3"><Icon name="trash-2" size={20} className="text-teal-600" /> Favorieten wissen</span>
+              <span className="text-sm text-muted font-bold">{favIds.length}</span>
+            </button>
+          </div>
+
+          <div className="mt-4 bg-white/60 rounded-3xl p-5 text-sm text-muted leading-relaxed">
+            <p className="font-bold text-ink mb-1">{ACTIVITIES.length} uitjes in de buurt</p>
+            Database gericht op Overijssel. Prijzen, openingstijden en beoordelingen zijn <b>indicatief</b> — controleer altijd de officiële website voordat je gaat. Afstanden zijn hemelsbreed (Haversine).
+          </div>
+          <p className="text-center text-[11px] text-muted/70 mt-4">Hup! · Spontane Uitjes · PWA</p>
+        </div>
+      )}
+
+      {/* ---------- bottom nav ---------- */}
+      <nav className="fixed bottom-0 inset-x-0 z-30">
+        <div className="max-w-md mx-auto bg-white shadow-nav rounded-t-[24px] px-6 py-2.5 flex items-center justify-around" style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
+          {[["home", "home", "Home"], ["favorites", "heart", "Favorieten"], ["profile", "user", "Profiel"]].map(([id, ic, label]) => (
+            <button key={id} onClick={() => setTab(id)} className="flex flex-col items-center gap-1 py-1 px-3 relative">
+              <Icon name={ic} size={23} className={tab === id ? "text-teal-600" : "text-muted"} stroke={tab === id ? 2.6 : 2.2} />
+              <span className={"text-[11px] font-bold " + (tab === id ? "text-teal-700" : "text-muted")}>{label}</span>
+              {id === "favorites" && favIds.length > 0 && (
+                <span className="absolute top-0 right-1 min-w-[16px] h-4 px-1 grid place-items-center text-[9px] font-black bg-rose-500 text-white rounded-full">{favIds.length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* ---------- overlays ---------- */}
+      {rolling && <RouletteOverlay preview={preview} />}
+      {detail && !rolling && (
+        <DetailView a={detail} isFav={favIds.includes(detail.id)} onFav={() => toggleFav(detail.id)} onBack={() => setDetail(null)} onNext={roll} />
+      )}
+      <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} prefs={prefs} setPrefs={setPrefs} count={candidates.length} />
     </div>
   );
 }
