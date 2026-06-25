@@ -1,5 +1,18 @@
 # Changelog — Hup!
 
+## v2.5 — Vertrouwen & locatie
+- **Instelbare startlocatie**: "Gebruik mijn locatie" (GPS) of kies een plaats
+  uit de lijst (Profiel). Alle afstanden worden vanaf dáár berekend, niet meer
+  vast vanaf Hardenberg. Keuze blijft bewaard.
+- **Seizoen-/openingsindicatie** op de detailkaart (indicatief): toont het
+  seizoen en waarschuwt "mogelijk gesloten in <maand>" voor duidelijk
+  seizoensgebonden uitjes (buitenbaden, pretparken, klimbos, maisdoolhof…).
+- **"Check openingstijden & actuele info"-knop**: opent een web-zoekopdracht
+  naar het uitje — altijd actueel, nooit verouderde data.
+- **Error-boundary**: bij een onverwachte fout krijg je nu een nette
+  herstel-pagina (Herladen / Cache wissen) i.p.v. een wit scherm.
+- Service Worker → `hup-v9`.
+
 ## v2.4 — Bugfix: app bleef leeg door oude cache
 - **Root cause:** de service worker serveerde `app.js` cache-first. Wie ooit een
   oude/kapotte versie in cache had (o.a. de korte kapotte eerste deploy), bleef

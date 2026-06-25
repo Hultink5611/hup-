@@ -33,6 +33,48 @@ function haversine(lat1, lng1, lat2, lng2) {
 const euro = (n) => (n === 0 ? "Gratis" : "€" + n);
 function priceTier(p) { return p === 0 ? "gratis" : p <= 10 ? "low" : p <= 25 ? "mid" : "high"; }
 
+// Startlocaties die je kunt kiezen (naast 'Mijn locatie' via GPS).
+const TOWNS = [
+  { name: "Hardenberg", lat: 52.5752, lng: 6.6177 },
+  { name: "Ommen", lat: 52.5183, lng: 6.4186 },
+  { name: "Dalfsen", lat: 52.5100, lng: 6.2550 },
+  { name: "Zwolle", lat: 52.5168, lng: 6.0830 },
+  { name: "Kampen", lat: 52.5550, lng: 5.9110 },
+  { name: "Steenwijk", lat: 52.7870, lng: 6.1190 },
+  { name: "Meppel", lat: 52.6940, lng: 6.1970 },
+  { name: "Raalte", lat: 52.3880, lng: 6.2760 },
+  { name: "Deventer", lat: 52.2550, lng: 6.1600 },
+  { name: "Nijverdal", lat: 52.3650, lng: 6.4640 },
+  { name: "Rijssen", lat: 52.3060, lng: 6.5210 },
+  { name: "Almelo", lat: 52.3570, lng: 6.6680 },
+  { name: "Hengelo", lat: 52.2650, lng: 6.7930 },
+  { name: "Enschede", lat: 52.2200, lng: 6.8900 },
+  { name: "Oldenzaal", lat: 52.3130, lng: 6.9280 },
+  { name: "Coevorden", lat: 52.6600, lng: 6.7400 },
+  { name: "Emmen", lat: 52.7850, lng: 6.8970 },
+];
+
+// Seizoens-/openingsindicatie (indicatief). id → [startmaand, eindmaand, label].
+// Alleen duidelijk seizoensgebonden uitjes; de rest is 'Hele jaar'.
+const SEASON_OVERRIDE = {
+  5: [4, 10, "Apr–okt"], 10: [4, 10, "Apr–okt"], 16: [4, 10, "Apr–okt"], 25: [3, 10, "Mrt–okt"],
+  58: [4, 10, "Apr–okt"], 95: [4, 10, "Apr–okt"], 98: [4, 10, "Apr–okt"], 100: [4, 10, "Apr–okt"],
+  7: [5, 9, "Mei–sep"], 34: [4, 10, "Apr–okt"],
+  17: [5, 9, "Mei–sep"], 50: [5, 9, "Mei–sep"], 51: [5, 9, "Mei–sep"], 52: [5, 9, "Mei–sep"],
+  54: [5, 9, "Mei–sep"], 56: [5, 9, "Mei–sep"], 86: [5, 9, "Mei–sep"],
+  31: [7, 9, "Jul–sep"], 53: [7, 9, "Jul–sep"],
+  30: [3, 10, "Mrt–okt"], 37: [3, 10, "Mrt–okt"], 62: [3, 10, "Mrt–okt"], 75: [3, 10, "Mrt–okt"],
+  103: [3, 10, "Mrt–okt"], 108: [3, 10, "Mrt–okt"], 109: [3, 10, "Mrt–okt"],
+};
+const MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+function seasonInfo(a) {
+  const o = SEASON_OVERRIDE[a.id];
+  if (!o) return { label: "Hele jaar", open: true, seasonal: false };
+  const m = new Date().getMonth() + 1;
+  return { label: o[2], open: m >= o[0] && m <= o[1], seasonal: true };
+}
+function searchUrl(a) { return "https://www.google.com/search?q=" + encodeURIComponent(a.name + " " + a.plaats); }
+
 /* ---------------------------------------------------------------- database
  * Velden: min_age, max_age, prijs(€/p.p. indicatief), indoor_friendly,
  * lat/lng, duur, rating(indicatief), emoji, desc. Startlocatie Hardenberg.
@@ -315,6 +357,7 @@ function mapsUrl(a) { return "https://www.google.com/maps/dir/?api=1&destination
 
 /* ----------------------------------------------------- detail screen */
 function DetailView({ a, isFav, onFav, onBack, onNext }) {
+  const se = seasonInfo(a);
   return (
     <div className="fixed inset-0 z-40 bg-mint flex flex-col fade">
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -350,10 +393,26 @@ function DetailView({ a, isFav, onFav, onBack, onNext }) {
 
             <p className="mt-4 text-[15px] leading-relaxed text-ink/80">{a.desc}</p>
 
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink bg-mint rounded-full px-3 py-1.5">
+                <Icon name="calendar" size={15} className="text-teal-600" /> Seizoen: {se.label}
+              </span>
+              {se.seasonal && !se.open && (
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold rounded-full px-3 py-1.5" style={{ background: "#FEF3C7", color: "#B45309" }}>
+                  <Icon name="alert-triangle" size={15} /> Mogelijk gesloten in {MAANDEN[new Date().getMonth()]}
+                </span>
+              )}
+            </div>
+
             <div className="mt-4"><MiniMap a={a} onOpen={() => window.open(mapsUrl(a), "_blank", "noopener")} /></div>
+
+            <a href={searchUrl(a)} target="_blank" rel="noopener"
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-mint text-teal-700 font-bold py-3 rounded-2xl active:scale-[.98] transition">
+              <Icon name="search" size={18} stroke={2.4} /> Check openingstijden & actuele info
+            </a>
           </div>
         </div>
-        <p className="text-center text-[11px] text-muted/80 mt-3">Prijs, duur en beoordeling zijn indicatief — check de website.</p>
+        <p className="text-center text-[11px] text-muted/80 mt-3">Prijs, duur, seizoen en beoordeling zijn indicatief — check de website.</p>
       </div>
 
       <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-mint via-mint to-transparent">
@@ -599,9 +658,10 @@ function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, o
 /* ----------------------------------------------------- App */
 function App() {
   const [tab, setTab] = useState("home");
-  const [prefs, setPrefs] = useState(() => loadJSON(PREFS_KEY, {
-    ages: [2, 6], adults: 2, radius: 75, budgets: ["gratis", "low", "mid", "high"], excludeCats: [], indoorOnly: false,
-  }));
+  const [prefs, setPrefs] = useState(() => {
+    const defaults = { ages: [2, 6], adults: 2, radius: 75, budgets: ["gratis", "low", "mid", "high"], excludeCats: [], indoorOnly: false, origin: HARDENBERG };
+    return { ...defaults, ...loadJSON(PREFS_KEY, {}) };
+  });
   const [favIds, setFavIds] = useState(() => loadJSON(FAV_KEY, []));
   const [detail, setDetail] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -616,7 +676,16 @@ function App() {
   useEffect(() => saveJSON(PREFS_KEY, prefs), [prefs]);
   useEffect(() => saveJSON(FAV_KEY, favIds), [favIds]);
 
-  const withMeta = (a) => ({ ...a, distance: haversine(HARDENBERG.lat, HARDENBERG.lng, a.lat, a.lng) });
+  const origin = prefs.origin || HARDENBERG;
+  const withMeta = (a) => ({ ...a, distance: haversine(origin.lat, origin.lng, a.lat, a.lng) });
+  const useMyLocation = () => {
+    if (!navigator.geolocation) { alert("Locatie is niet beschikbaar op dit apparaat."); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setPrefs({ ...prefs, origin: { name: "Mijn locatie", lat: pos.coords.latitude, lng: pos.coords.longitude } }); Sound.blip(); },
+      () => alert("Kon je locatie niet ophalen. Kies anders een plaats uit de lijst."),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+    );
+  };
 
   const candidates = useMemo(() => ACTIVITIES.map(withMeta)
     .filter((a) => matchesAges(a, prefs.ages))
@@ -762,8 +831,27 @@ function App() {
               <div className="w-14 h-14 rounded-2xl bg-teal-500 grid place-items-center text-white shadow-card"><Icon name="sparkles" size={26} stroke={2.4} /></div>
               <div>
                 <p className="font-display font-extrabold text-lg text-ink">Hup! Gezin</p>
-                <p className="text-sm text-muted">Startlocatie {HARDENBERG.name}</p>
+                <p className="text-sm text-muted">Startlocatie {origin.name}</p>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-white rounded-3xl shadow-card p-5">
+            <h3 className="font-display font-extrabold uppercase tracking-wide text-sm text-muted mb-1 flex items-center gap-2"><Icon name="map-pin" size={16} className="text-teal-600" /> Startlocatie</h3>
+            <p className="text-sm text-muted mb-3">Afstanden worden vanaf hier berekend. Nu: <b className="text-ink">{origin.name}</b>.</p>
+            <button onClick={useMyLocation} className="w-full inline-flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 rounded-2xl shadow-card active:scale-[.98] transition mb-3">
+              <Icon name="locate-fixed" size={18} stroke={2.4} /> Gebruik mijn locatie
+            </button>
+            <label className="block text-xs font-bold uppercase tracking-wide text-muted mb-1">Of kies een plaats</label>
+            <div className="relative">
+              <select
+                value={TOWNS.some((t) => t.name === origin.name) ? origin.name : ""}
+                onChange={(e) => { const t = TOWNS.find((x) => x.name === e.target.value); if (t) { setPrefs({ ...prefs, origin: t }); Sound.blip(); } }}
+                className="w-full appearance-none bg-mint rounded-2xl px-4 py-3 pr-10 font-semibold text-ink outline-none focus:ring-2 focus:ring-teal-400">
+                {!TOWNS.some((t) => t.name === origin.name) && <option value="">{origin.name}</option>}
+                {TOWNS.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none"><Icon name="chevron-down" size={18} /></span>
             </div>
           </div>
 
@@ -815,4 +903,38 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+/* ----------------------------------------------------- error boundary */
+class ErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err) { try { console.error("Hup! render-fout:", err); } catch {} }
+  async hardReset() {
+    try {
+      if ("serviceWorker" in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+      if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
+    } catch {}
+    location.reload();
+  }
+  render() {
+    if (this.state.err) {
+      return (
+        <div className="min-h-[100dvh] grid place-items-center p-6 text-center">
+          <div className="max-w-sm">
+            <div className="text-5xl mb-3">🛠️</div>
+            <h1 className="font-display text-2xl font-extrabold text-ink">Er ging iets mis</h1>
+            <p className="text-muted mt-2">De app liep vast. Probeer te herladen — of wis de cache als het probleem blijft.</p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button onClick={() => location.reload()} className="bg-teal-500 text-white font-bold py-3 rounded-2xl shadow-card active:scale-95">Herladen</button>
+              <button onClick={() => this.hardReset()} className="bg-white text-ink font-bold py-3 rounded-2xl shadow-card active:scale-95 border border-line">Cache wissen & herladen</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ErrorBoundary><App /></ErrorBoundary>
+);
