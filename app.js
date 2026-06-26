@@ -13,6 +13,7 @@ const SOUND_KEY = "hup.sound.v1";
 const DONE_KEY = "hup.done.v1";
 const WEATHER_KEY = "hup.weather.v1";
 const SEEN_KEY = "hup.seen.v1";
+const ROLLS_KEY = "hup.rolls.v1";
 
 async function fetchWeather(lat, lng) {
   try {
@@ -604,6 +605,8 @@ function HeroScene({ category, seed = 0 }) {
     wellness: <g><g fill={W}><ellipse cx="200" cy="170" rx="44" ry="13" /><ellipse cx="200" cy="150" rx="34" ry="11" /><ellipse cx="200" cy="133" rx="24" ry="9" /></g>{[160, 200, 240].map((x) => <path key={x} d={`M${x} 110 q-10 -14 0 -28 q10 14 0 28`} stroke={L} strokeWidth="3" fill="none" />)}</g>,
     uitgaan: <g><circle cx="200" cy="80" r="40" fill={W} /><g stroke={D} strokeWidth="1.5">{[-40, -20, 0, 20, 40].map((d) => <line key={"h" + d} x1="160" y1={80 + d} x2="240" y2={80 + d} />)}{[-40, -20, 0, 20, 40].map((d) => <line key={"v" + d} x1={200 + d} y1="40" x2={200 + d} y2="120" />)}</g><g fill={L}><circle cx="80" cy="50" r="3" /><circle cx="320" cy="60" r="3" /><circle cx="300" cy="30" r="2" /></g></g>,
     bezienswaardigheid: <g><path d="M180 40 H220 V60 L235 70 V180 H165 V70 L180 60 Z" fill={W} /><rect x="190" y="100" width="20" height="80" fill={D} /><path d="M0 180 H400 V200 H0 Z" fill={D} /><circle cx="200" cy="34" r="6" fill={L} /></g>,
+    natuur2: <g><circle cx="318" cy="50" r="19" fill={L} /><path d="M0 140 Q140 118 290 138 T400 134 V200 H0 Z" fill={W} /><path d="M0 162 H400 V200 H0 Z" fill={D} />{[56, 92, 300, 332].map((x, i) => <path key={i} d={`M${x} 162 q-2 -24 0 -38`} stroke={W} strokeWidth="3" fill="none" />)}{tree(150, 0.7)}{tree(210, 0.6)}</g>,
+    avontuur2: <g><path d="M0 172 L110 86 L220 172 Z" fill={D} /><path d="M200 172 L300 100 L400 172 Z" fill={W} /><path d="M150 176 L185 126 L220 176 Z" fill={W} /><line x1="185" y1="126" x2="185" y2="176" stroke={D} strokeWidth="2" /><circle cx="320" cy="46" r="18" fill={L} /></g>,
   };
   // Variatie-laag: wolken, vogels of sterren — verschilt per uitje.
   const extras = [];
@@ -616,7 +619,7 @@ function HeroScene({ category, seed = 0 }) {
   else if (rnd(3) > 0.6) extras.push(<g key="s" fill={L}>{[0, 1, 2, 3].map((i) => <circle key={i} cx={50 + rnd(i + 20) * 300} cy={20 + rnd(i + 21) * 40} r={1 + rnd(i + 22) * 2} />)}</g>);
   return (
     <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 w-full h-full" aria-hidden="true">
-      <g transform={flip ? "translate(400,0) scale(-1,1)" : undefined}>{scenes[category] || null}</g>
+      <g transform={flip ? "translate(400,0) scale(-1,1)" : undefined}>{(rnd(11) > 0.5 && scenes[category + "2"]) ? scenes[category + "2"] : (scenes[category] || null)}</g>
       {extras}
     </svg>
   );
@@ -1132,7 +1135,9 @@ function App() {
   const [showIntro, setShowIntro] = useState(() => !loadJSON(SEEN_KEY, false));
   const [installEvt, setInstallEvt] = useState(null);
   const [favTab, setFavTab] = useState("fav");
+  const [rolls, setRolls] = useState(() => loadJSON(ROLLS_KEY, 0));
   const lastId = useRef(null);
+  useEffect(() => saveJSON(ROLLS_KEY, rolls), [rolls]);
 
   useEffect(() => saveJSON(PREFS_KEY, prefs), [prefs]);
   useEffect(() => saveJSON(FAV_KEY, favIds), [favIds]);
@@ -1217,6 +1222,7 @@ function App() {
         setPreview(chosen); Sound.tick(); vibrate(20);
         setTimeout(() => {
           setRolling(false); setPreview(null); setDetail(chosen); setTab("home");
+          setRolls((n) => n + 1);
           Sound.ding(); vibrate([18, 40, 18]); confettiBurst();
         }, 750);
       }
@@ -1394,6 +1400,16 @@ function App() {
                 <p className="text-sm text-muted">Startlocatie {origin.name}</p>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {[["🎉", rolls, "keer Hup!"], ["❤️", favIds.length, favIds.length === 1 ? "favoriet" : "favorieten"], ["✅", doneIds.length, "geweest"]].map(([e, n, l]) => (
+              <div key={l} className="bg-white rounded-3xl shadow-card py-4 text-center">
+                <div className="text-2xl">{e}</div>
+                <div className="font-display text-2xl font-extrabold text-ink tabular-nums mt-1">{n}</div>
+                <div className="text-[11px] text-muted font-semibold">{l}</div>
+              </div>
+            ))}
           </div>
 
           <div className="mt-4 bg-white rounded-3xl shadow-card p-5">

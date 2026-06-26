@@ -1,5 +1,12 @@
 # Changelog — Hup!
 
+## v2.18 — Stats + nóg meer illustratie-variatie
+- **Persoonlijke stats** in Profiel: "X keer Hup!", favorieten en geweest.
+- **Alternatieve basis-illustraties** voor natuur (meer/water-scène) en avontuur
+  (tent & bergen) — naast de spiegeling/wolken-variatie, dus echt verschillende
+  plaatjes binnen dezelfde categorie.
+- Service Worker → `hup-v22`.
+
 ## v2.17 — Roulette landt op de keuze + meer variatie
 - 🎡 **De roulette draait langer en landt zichtbaar op het gekozen uitje** — de
   kaart waar 'ie stopt is precies het uitje dat opent.
