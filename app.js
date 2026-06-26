@@ -1049,13 +1049,17 @@ function App() {
   const origin = prefs.origin || HARDENBERG;
   const withMeta = (a) => ({ ...a, distance: haversine(origin.lat, origin.lng, a.lat, a.lng) });
 
-  // Gedeelde link ?a=<id> opent meteen dat uitje.
+  // Deep links: ?a=<id> opent een uitje; ?tab= en ?start=hup voor snelkoppelingen.
   useEffect(() => {
-    const p = new URLSearchParams(location.search).get("a");
+    const q = new URLSearchParams(location.search);
+    const p = q.get("a");
     if (p) {
       const found = ACTIVITIES.find((x) => String(x.id) === p);
       if (found) setDetail(withMeta(found));
     }
+    const t = q.get("tab");
+    if (t && ["home", "ontdek", "favorites", "profile"].includes(t)) setTab(t);
+    if (q.get("start") === "hup") setTimeout(() => roll(), 350);
   }, []); // eslint-disable-line
   const useMyLocation = () => {
     if (!navigator.geolocation) { alert("Locatie is niet beschikbaar op dit apparaat."); return; }
@@ -1124,6 +1128,8 @@ function App() {
 
   return (
     <div className="relative mx-auto max-w-md min-h-[100dvh] pb-24">
+      <p className="sr-only" aria-live="polite">{detail ? "Gekozen uitje: " + detail.name + " in " + detail.plaats : ""}</p>
+
       {/* ---------- HOME ---------- */}
       {tab === "home" && (
         <div className="px-5 pt-6 fade">

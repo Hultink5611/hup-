@@ -109,6 +109,10 @@
     .no-scrollbar::-webkit-scrollbar { display:none; }
     .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
 
+    /* Toegankelijkheid: zichtbare focus voor toetsenbord-/AT-gebruikers */
+    :focus-visible { outline: 3px solid #0d9488; outline-offset: 2px; border-radius: 10px; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
     /* iOS toggle */
     .switch { width:50px; height:30px; border-radius:9999px; background:#CBE3DD; position:relative; transition:background .2s; flex:0 0 auto; }
     .switch[data-on="true"] { background: var(--color-teal-500); }

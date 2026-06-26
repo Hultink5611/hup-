@@ -1,5 +1,13 @@
 # Changelog — Hup!
 
+## v2.12 — PWA-snelkoppelingen & toegankelijkheid
+- **App-snelkoppelingen** (lang-indrukken op het app-icoon): Verras me, Ontdek,
+  Favorieten. Werkt via `?start=hup` / `?tab=...` deep links.
+- **Toegankelijkheid**: zichtbare focus-stijlen voor toetsenbord/AT-gebruikers,
+  en een aria-live aankondiging van het gekozen uitje voor screenreaders.
+- Manifest verfijnd (omschrijving, categorieën, achtergrondkleur).
+- Service Worker → `hup-v16`.
+
 ## v2.11 — Delight & agenda
 - 🎉 **Confetti** wanneer Hup een uitje voor je kiest (respecteert
   reduced-motion; ruimt zichzelf gegarandeerd op).

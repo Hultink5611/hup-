@@ -1,16 +1,21 @@
 {
   "name": "Hup! Spontane Uitjes",
   "short_name": "Hup!",
-  "description": "Eén tik en we kiezen een uitje dat precies past bij jouw gezin.",
+  "description": "Eén tik en we kiezen een uitje dat precies past — voor het gezin, je partner, vrienden of oma.",
   "lang": "nl-NL",
   "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FAF9F6",
+  "background_color": "#EAF7F4",
   "theme_color": "#14b8a6",
   "categories": ["lifestyle", "travel", "entertainment"],
+  "shortcuts": [
+    { "name": "Verras me", "short_name": "Hup!", "description": "Kies meteen een uitje", "url": "./index.html?start=hup" },
+    { "name": "Ontdek", "description": "Blader door alle uitjes", "url": "./index.html?tab=ontdek" },
+    { "name": "Favorieten", "description": "Je bewaarde uitjes", "url": "./index.html?tab=favorites" }
+  ],
   "icons": [
     {
       "src": "./icon.svg",
