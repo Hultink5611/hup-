@@ -124,7 +124,6 @@ function seasonInfo(a) {
 }
 function searchUrl(a) { return "https://www.google.com/search?q=" + encodeURIComponent(a.name + " " + a.plaats); }
 function reviewsUrl(a) { return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a.name + " " + a.plaats); }
-function mapEmbedUrl(a) { return "https://maps.google.com/maps?q=" + encodeURIComponent(a.name + " " + a.plaats) + "&output=embed"; }
 
 const CONTACT = "markhultink@live.com";
 function appUrl() { return location.origin + location.pathname; }
@@ -687,7 +686,6 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, 
   if (a.prijs === 0) reasons.push("Gratis");
   else if (a.prijs <= 10) reasons.push("Budgetvriendelijk");
   if (a.rating >= 4.5) reasons.push("⭐ Toppertje");
-  const [showReviews, setShowReviews] = useState(false);
   return (
     <div className="fixed inset-0 z-40 bg-mint flex flex-col fade">
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -721,7 +719,7 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, 
             </div>
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <Stars value={a.rating} />
-              <button onClick={() => setShowReviews(true)} className="text-[12px] font-bold text-teal-700 inline-flex items-center gap-1">· reviews op Google</button>
+              <a href={reviewsUrl(a)} target="_blank" rel="noopener" className="text-[12px] font-bold text-teal-700 inline-flex items-center gap-1">· reviews op Google</a>
             </div>
 
             {reasons.length > 0 && (
@@ -757,10 +755,10 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, 
 
             <div className="mt-4"><MiniMap a={a} onOpen={() => window.open(mapsUrl(a), "_blank", "noopener")} /></div>
 
-            <button onClick={() => setShowReviews(true)}
+            <a href={reviewsUrl(a)} target="_blank" rel="noopener"
               className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-bold py-3 rounded-2xl border border-amber-100 active:scale-[.98] transition">
               <Icon name="star" size={18} stroke={2.4} className="fill-current" /> Reviews op Google
-            </button>
+            </a>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <a href={searchUrl(a)} target="_blank" rel="noopener"
                 className="inline-flex items-center justify-center gap-2 bg-mint text-teal-700 font-bold py-3 rounded-2xl active:scale-[.98] transition text-[14px]">
@@ -793,27 +791,6 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, 
           </button>
         </div>
       </div>
-
-      {showReviews && (
-        <div className="fixed inset-0 z-[70] flex flex-col justify-end" onClick={() => setShowReviews(false)}>
-          <div className="absolute inset-0" style={{ background: "rgba(18,58,52,0.5)" }} />
-          <div className="sheet-in relative bg-white rounded-t-[28px] overflow-hidden flex flex-col" style={{ height: "82dvh" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-line shrink-0">
-              <div className="min-w-0">
-                <p className="font-display font-extrabold text-ink truncate flex items-center gap-1.5"><Icon name="star" size={15} className="text-amber fill-current" /> {a.name}</p>
-                <p className="text-xs text-muted">Live rating & reviews via Google</p>
-              </div>
-              <button onClick={() => setShowReviews(false)} className="w-9 h-9 grid place-items-center rounded-full bg-mint shrink-0" aria-label="Sluiten"><Icon name="x" size={18} stroke={2.6} /></button>
-            </div>
-            <iframe title="Google kaart en reviews" src={mapEmbedUrl(a)} className="flex-1 w-full" style={{ border: 0 }} loading="lazy" />
-            <div className="p-3 border-t border-line shrink-0">
-              <a href={reviewsUrl(a)} target="_blank" rel="noopener" className="w-full inline-flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 rounded-2xl active:scale-[.98] transition">
-                <Icon name="external-link" size={18} stroke={2.4} /> Open alle reviews op Google
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,12 @@
 # Changelog — Hup!
 
+## v2.23 — Reviews-popup eruit, weer directe link
+- De reviews-popup toonde alleen een kaart (geen review-teksten — die zijn niet
+  keyless/gratis op te halen), dus die gaf niet wat de gebruiker verwacht.
+  Verwijderd. "Reviews op Google" opent nu weer **direct de Google-pagina** met
+  de échte reviews. Eerlijk en zonder verwarring.
+- Service Worker → `hup-v27`.
+
 ## v2.22 — Reviews in een in-app popup
 - "Reviews op Google" opent nu een **80%-popup binnen de app** met een ingebedde
   Google-kaart die de **live rating + aantal reviews** toont (keyless, gratis).
