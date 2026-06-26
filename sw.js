@@ -8,7 +8,7 @@
  *   - Cross-origin CDN's (React/Tailwind/Babel/Lucide/fonts):
  *     stale-while-revalidate, zodat offline blijft werken.
  */
-const VERSION = 'hup-v25';
+const VERSION = 'hup-v26';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -61,7 +61,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   const sameOrigin = url.origin === self.location.origin;
 
-  // Navigaties en kern-app: network-first.
+  // Cross-origin navigaties (bv. de Google-kaart-iframe) laten we ongemoeid.
+  if (request.mode === 'navigate' && !sameOrigin) return;
+  // Eigen navigaties: network-first.
   if (request.mode === 'navigate') { event.respondWith(networkFirst(request)); return; }
 
   if (sameOrigin) {

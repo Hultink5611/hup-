@@ -1,5 +1,12 @@
 # Changelog — Hup!
 
+## v2.22 — Reviews in een in-app popup
+- "Reviews op Google" opent nu een **80%-popup binnen de app** met een ingebedde
+  Google-kaart die de **live rating + aantal reviews** toont (keyless, gratis).
+  Eén tik op "Open alle reviews" voor de volledige reviews — je blijft in de app.
+- SW: cross-origin iframe-navigaties (de Google-kaart) worden ongemoeid gelaten.
+- Service Worker → `hup-v26`.
+
 ## v2.21 — Reviews op Google
 - Per uitje een **"Reviews op Google"-knop** die direct de Google Maps-plek opent
   met de échte, live sterren + reviews (gratis, geen API/opslag — voldoet aan
