@@ -141,6 +141,14 @@ function shareApp() {
   else if (navigator.clipboard) { navigator.clipboard.writeText(text + "\n" + url).then(() => alert("Link gekopieerd!")); }
   else { window.prompt("Kopieer de link:", url); }
 }
+function shareFavorites(list) {
+  if (!list.length) return;
+  const lines = list.slice(0, 15).map((a) => `• ${a.emoji} ${a.name} (${a.plaats})`).join("\n");
+  const text = "Mijn favoriete uitjes in Hup!:\n" + lines + "\n\nOntdek je eigen uitje 👉 " + appUrl();
+  if (navigator.share) { navigator.share({ title: "Mijn Hup!-favorieten", text }).catch(() => {}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(text).then(() => alert("Lijst gekopieerd!")); }
+  else { window.prompt("Kopieer de lijst:", text); }
+}
 function tipMail() {
   location.href = "mailto:" + CONTACT + "?subject=" + encodeURIComponent("Hup! — tip voor een uitje") +
     "&body=" + encodeURIComponent("Ik mis dit uitje in Hup!:\n\nNaam:\nPlaats:\nWaarom leuk:\nWebsite:\n");
@@ -1027,6 +1035,7 @@ function App() {
   const [weather, setWeather] = useState(null);
   const [showIntro, setShowIntro] = useState(() => !loadJSON(SEEN_KEY, false));
   const [installEvt, setInstallEvt] = useState(null);
+  const [favTab, setFavTab] = useState("fav");
   const lastId = useRef(null);
 
   useEffect(() => saveJSON(PREFS_KEY, prefs), [prefs]);
@@ -1125,6 +1134,7 @@ function App() {
   const dismissIntro = () => { setShowIntro(false); saveJSON(SEEN_KEY, true); };
   const w = ageWindow(prefs.ages);
   const favs = ACTIVITIES.filter((a) => favIds.includes(a.id)).map(withMeta);
+  const doneList = ACTIVITIES.filter((a) => doneIds.includes(a.id)).map(withMeta);
 
   return (
     <div className="relative mx-auto max-w-md min-h-[100dvh] pb-24">
@@ -1222,17 +1232,46 @@ function App() {
       {/* ---------- FAVORITES ---------- */}
       {tab === "favorites" && (
         <div className="px-5 pt-6 fade">
-          <h1 className="font-display text-2xl font-extrabold tracking-tight flex items-center gap-2"><Icon name="heart" size={24} className="text-rose-500 fill-current" stroke={0} /> Favorieten</h1>
-          {favs.length === 0 ? (
-            <div className="text-center py-24">
-              <div className="text-6xl mb-3">📌</div>
-              <p className="font-display text-xl font-extrabold text-ink">Nog niks bewaard</p>
-              <p className="text-muted mt-1 text-sm">Tik op het hartje bij een uitje om het hier te bewaren.</p>
-            </div>
+          <div className="flex items-center justify-between">
+            <h1 className="font-display text-2xl font-extrabold tracking-tight flex items-center gap-2"><Icon name="heart" size={24} className="text-rose-500 fill-current" stroke={0} /> Bewaard</h1>
+            {favTab === "fav" && favs.length > 0 && (
+              <button onClick={() => shareFavorites(favs)} className="w-11 h-11 rounded-full bg-white grid place-items-center shadow-card active:scale-95" aria-label="Deel mijn favorieten"><Icon name="share-2" size={19} stroke={2.4} /></button>
+            )}
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <button onClick={() => setFavTab("fav")} className={"flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-bold transition " + (favTab === "fav" ? "bg-teal-500 text-white shadow-card" : "bg-white text-ink shadow-card")}>
+              <Icon name="heart" size={15} stroke={2.4} /> Favorieten {favs.length > 0 && <span className="opacity-80">{favs.length}</span>}
+            </button>
+            <button onClick={() => setFavTab("done")} className={"flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-bold transition " + (favTab === "done" ? "bg-teal-500 text-white shadow-card" : "bg-white text-ink shadow-card")}>
+              <Icon name="circle-check" size={15} stroke={2.4} /> Geweest {doneList.length > 0 && <span className="opacity-80">{doneList.length}</span>}
+            </button>
+          </div>
+
+          {favTab === "fav" ? (
+            favs.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-6xl mb-3">📌</div>
+                <p className="font-display text-xl font-extrabold text-ink">Nog niks bewaard</p>
+                <p className="text-muted mt-1 text-sm">Tik op het hartje bij een uitje om het hier te bewaren.</p>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-3">
+                {favs.map((a) => <ListCard key={a.id} a={a} onOpen={() => setDetail(a)} onRemove={() => toggleFav(a.id)} />)}
+              </div>
+            )
           ) : (
-            <div className="mt-5 space-y-3">
-              {favs.map((a) => <ListCard key={a.id} a={a} onOpen={() => setDetail(a)} onRemove={() => toggleFav(a.id)} />)}
-            </div>
+            doneList.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-6xl mb-3">✅</div>
+                <p className="font-display text-xl font-extrabold text-ink">Nog niks afgevinkt</p>
+                <p className="text-muted mt-1 text-sm">Markeer een uitje als 'geweest' om je avonturen bij te houden.</p>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-3">
+                {doneList.map((a) => <ListCard key={a.id} a={a} onOpen={() => setDetail(a)} onRemove={() => toggleDone(a.id)} />)}
+              </div>
+            )
           )}
         </div>
       )}

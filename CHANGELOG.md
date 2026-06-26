@@ -1,5 +1,11 @@
 # Changelog — Hup!
 
+## v2.13 — Bewaard: Favorieten ✕ Geweest + delen
+- De **Favorieten-tab** heeft nu twee tabbladen: **Favorieten** en **Geweest**
+  (je afgevinkte avonturen) — houd bij wat je nog wilt doen én wat je al deed.
+- **"Deel mijn favorieten"**: stuur je favorietenlijst door (Web Share / clipboard).
+- Service Worker → `hup-v17`.
+
 ## v2.12 — PWA-snelkoppelingen & toegankelijkheid
 - **App-snelkoppelingen** (lang-indrukken op het app-icoon): Verras me, Ontdek,
   Favorieten. Werkt via `?start=hup` / `?tab=...` deep links.
