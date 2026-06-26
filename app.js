@@ -809,14 +809,45 @@ function ListCard({ a, onOpen, onRemove }) {
 }
 
 /* ----------------------------------------------------- browse / ontdek */
+function MapView({ items, onOpen }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const L = window.L;
+    if (!L || !ref.current) return;
+    const map = L.map(ref.current, { zoomControl: true, attributionControl: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(map);
+    const pts = [];
+    items.forEach((a) => {
+      const color = CAT[a.category].g[1];
+      const html = `<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:${color};transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);display:grid;place-items:center"><span style="transform:rotate(45deg);font-size:15px;line-height:1">${a.emoji}</span></div>`;
+      const icon = L.divIcon({ html, className: "", iconSize: [30, 30], iconAnchor: [15, 30] });
+      const m = L.marker([a.lat, a.lng], { icon, title: a.name }).addTo(map);
+      m.on("click", () => onOpen(a));
+      pts.push([a.lat, a.lng]);
+    });
+    if (pts.length) map.fitBounds(pts, { padding: [36, 36], maxZoom: 12 });
+    else map.setView([52.5, 6.4], 9);
+    setTimeout(() => map.invalidateSize(), 120);
+    return () => map.remove();
+  }, [items]);
+  return <div ref={ref} className="w-full rounded-3xl overflow-hidden shadow-card border border-line" style={{ height: "calc(100dvh - 250px)", minHeight: 320 }} />;
+}
+
 function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, onOpen, onFav, onFilters }) {
   const sorts = [["afstand", "Dichtbij"], ["prijs", "Prijs"], ["rating", "Beste"]];
   const [openId, setOpenId] = useState(null);
+  const [view, setView] = useState("list");
   return (
     <div className="px-5 pt-6 fade">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-extrabold tracking-tight flex items-center gap-2"><Icon name="compass" size={24} /> Ontdek</h1>
-        <button onClick={onFilters} className="w-11 h-11 rounded-full bg-white grid place-items-center shadow-card active:scale-95" aria-label="Filters"><Icon name="sliders-horizontal" size={20} stroke={2.4} /></button>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-white rounded-full shadow-card p-1">
+            <button onClick={() => setView("list")} className={"w-9 h-9 grid place-items-center rounded-full transition " + (view === "list" ? "bg-teal-500 text-white" : "text-muted")} aria-label="Lijst"><Icon name="list" size={18} stroke={2.4} /></button>
+            <button onClick={() => setView("kaart")} className={"w-9 h-9 grid place-items-center rounded-full transition " + (view === "kaart" ? "bg-teal-500 text-white" : "text-muted")} aria-label="Kaart"><Icon name="map" size={18} stroke={2.4} /></button>
+          </div>
+          <button onClick={onFilters} className="w-11 h-11 rounded-full bg-white grid place-items-center shadow-card active:scale-95" aria-label="Filters"><Icon name="sliders-horizontal" size={20} stroke={2.4} /></button>
+        </div>
       </div>
 
       <div className="mt-4 relative">
@@ -826,19 +857,24 @@ function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, o
         {query && <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted" aria-label="Wissen"><Icon name="x" size={18} /></button>}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs font-bold uppercase tracking-wide text-muted mr-1">Sorteer</span>
-        {sorts.map(([v, l]) => (
-          <button key={v} onClick={() => setSort(v)}
-            className={"px-3.5 py-1.5 rounded-full text-sm font-bold transition active:scale-95 " + (sort === v ? "bg-teal-500 text-white shadow-card" : "bg-white text-ink shadow-card")}>{l}</button>
-        ))}
-      </div>
+      {view === "list" && (
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted mr-1">Sorteer</span>
+          {sorts.map(([v, l]) => (
+            <button key={v} onClick={() => setSort(v)}
+              className={"px-3.5 py-1.5 rounded-full text-sm font-bold transition active:scale-95 " + (sort === v ? "bg-teal-500 text-white shadow-card" : "bg-white text-ink shadow-card")}>{l}</button>
+          ))}
+        </div>
+      )}
 
       <p className="mt-3 text-[13px] text-muted font-semibold">
         {items.length} {items.length === 1 ? "uitje" : "uitjes"} · van {totalAll} in totaal
         {items.length < totalAll && <button onClick={onFilters} className="text-teal-700 ml-1">· filters aanpassen</button>}
       </p>
 
+      {view === "kaart" ? (
+        <div className="mt-3"><MapView items={items} onOpen={onOpen} /></div>
+      ) : (
       <div className="mt-3 space-y-3">
         {items.length === 0 ? (
           <div className="text-center py-16">
@@ -894,6 +930,7 @@ function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, o
           );
         })}
       </div>
+      )}
     </div>
   );
 }

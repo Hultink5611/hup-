@@ -1,5 +1,11 @@
 # Changelog — Hup!
 
+## v2.10 — Kaartweergave
+- **Kaart in Ontdek**: schakel tussen lijst en kaart. Alle (gefilterde) uitjes
+  als categorie-pins op een interactieve kaart (Leaflet + OpenStreetMap).
+  Tik een pin → de detailkaart opent. Respecteert je filters & "Met wie?".
+- Service Worker → `hup-v14`.
+
 ## v2.9 — Slimmer & plakkeriger
 - **Weer-modus** ("Weer slim"): bij regen kiest Hup automatisch binnen-uitjes,
   met een weerbanner op Home (Open-Meteo, gratis, geen key; offline = uit).
