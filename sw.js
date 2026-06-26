@@ -8,7 +8,7 @@
  *   - Cross-origin CDN's (React/Tailwind/Babel/Lucide/fonts):
  *     stale-while-revalidate, zodat offline blijft werken.
  */
-const VERSION = 'hup-v24';
+const VERSION = 'hup-v25';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

@@ -123,6 +123,7 @@ function seasonInfo(a) {
   return { label: o[2], open: m >= o[0] && m <= o[1], seasonal: true };
 }
 function searchUrl(a) { return "https://www.google.com/search?q=" + encodeURIComponent(a.name + " " + a.plaats); }
+function reviewsUrl(a) { return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a.name + " " + a.plaats); }
 
 const CONTACT = "markhultink@live.com";
 function appUrl() { return location.origin + location.pathname; }
@@ -716,7 +717,10 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, 
             <div className="mt-1 flex items-center gap-2 text-muted font-semibold">
               <Icon name="map-pin" size={15} /> {a.plaats}
             </div>
-            <div className="mt-3"><Stars value={a.rating} /></div>
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <Stars value={a.rating} />
+              <a href={reviewsUrl(a)} target="_blank" rel="noopener" className="text-[12px] font-bold text-teal-700 inline-flex items-center gap-1">· reviews op Google</a>
+            </div>
 
             {reasons.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -751,14 +755,20 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, 
 
             <div className="mt-4"><MiniMap a={a} onOpen={() => window.open(mapsUrl(a), "_blank", "noopener")} /></div>
 
-            <a href={searchUrl(a)} target="_blank" rel="noopener"
-              className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-mint text-teal-700 font-bold py-3 rounded-2xl active:scale-[.98] transition">
-              <Icon name="search" size={18} stroke={2.4} /> Check openingstijden & actuele info
+            <a href={reviewsUrl(a)} target="_blank" rel="noopener"
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-bold py-3 rounded-2xl border border-amber-100 active:scale-[.98] transition">
+              <Icon name="star" size={18} stroke={2.4} className="fill-current" /> Reviews op Google
             </a>
-            <a href={calendarUrl(a)} target="_blank" rel="noopener"
-              className="mt-2 w-full inline-flex items-center justify-center gap-2 bg-white text-ink font-bold py-3 rounded-2xl border border-line active:scale-[.98] transition">
-              <Icon name="calendar-plus" size={18} stroke={2.4} className="text-teal-600" /> Zet in agenda
-            </a>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <a href={searchUrl(a)} target="_blank" rel="noopener"
+                className="inline-flex items-center justify-center gap-2 bg-mint text-teal-700 font-bold py-3 rounded-2xl active:scale-[.98] transition text-[14px]">
+                <Icon name="search" size={17} stroke={2.4} /> Openingstijden
+              </a>
+              <a href={calendarUrl(a)} target="_blank" rel="noopener"
+                className="inline-flex items-center justify-center gap-2 bg-white text-ink font-bold py-3 rounded-2xl border border-line active:scale-[.98] transition text-[14px]">
+                <Icon name="calendar-plus" size={17} stroke={2.4} className="text-teal-600" /> Agenda
+              </a>
+            </div>
           </div>
         </div>
         <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 mt-4">

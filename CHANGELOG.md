@@ -1,5 +1,13 @@
 # Changelog — Hup!
 
+## v2.21 — Reviews op Google
+- Per uitje een **"Reviews op Google"-knop** die direct de Google Maps-plek opent
+  met de échte, live sterren + reviews (gratis, geen API/opslag — voldoet aan
+  Google's voorwaarden). Plus een klein "· reviews op Google"-linkje bij het
+  in-app cijfer (dat indicatief is).
+- Info-knoppen netjes herschikt: Reviews · Openingstijden · Agenda.
+- Service Worker → `hup-v25`.
+
 ## v2.20 — Snellere carrousel
 - De carrousel draait nu wat korter (minder stappen, snellere afrem-curve) —
   vlotter gevoel, landt nog steeds exact op de gekozen activiteit. SW → `hup-v24`.
