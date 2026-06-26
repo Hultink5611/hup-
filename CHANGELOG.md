@@ -1,5 +1,15 @@
 # Changelog — Hup!
 
+## v2.17 — Roulette landt op de keuze + meer variatie
+- 🎡 **De roulette draait langer en landt zichtbaar op het gekozen uitje** — de
+  kaart waar 'ie stopt is precies het uitje dat opent.
+- 🎨 **Meer variatie in de illustraties**: per uitje een eigen variant (spiegeling
+  + wisselende wolken/vogels/sterren), dus twee uitjes in dezelfde categorie
+  zien er verschillend uit.
+- 🗓️ Nieuw filter **"Alleen wat nu open is"** — verbergt seizoensgebonden uitjes
+  die deze maand dicht zijn.
+- Service Worker → `hup-v21`.
+
 ## v2.16 — "Waarom dit past" + scènes in de roulette
 - De detailkaart toont nu **match-redenen** als chips (bv. "Binnen — fijn met
   dit weer", "Leuk met partner", "Lekker dichtbij", "Gratis", "Toppertje").

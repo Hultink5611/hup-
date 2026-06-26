@@ -585,8 +585,11 @@ function Stars({ value, size = 16 }) {
 /* ----------------------------------------------------- visual hero */
 // Sfeervolle, per-categorie SVG-scène achter de emoji. Wit/zwart met opacity
 // zodat het op elke categorie-gradient elegant oogt.
-function HeroScene({ category }) {
+function HeroScene({ category, seed = 0 }) {
   const W = "rgba(255,255,255,0.22)", D = "rgba(0,0,0,0.10)", L = "rgba(255,255,255,0.42)";
+  // Deterministische pseudo-random per uitje → elk uitje een eigen variant.
+  const rnd = (n) => { const x = Math.sin((seed + 1) * (n + 1) * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  const flip = rnd(7) > 0.5;
   const tree = (x, s) => <g transform={`translate(${x},155) scale(${s})`} fill={D}><rect x="-3" y="0" width="6" height="22" /><path d="M0 -30 L20 6 H-20 Z" /><path d="M0 -48 L16 -16 H-16 Z" /></g>;
   const scenes = {
     natuur: <g><circle cx="330" cy="46" r="24" fill={L} /><path d="M0 150 Q100 116 210 140 T400 132 V200 H0 Z" fill={W} /><path d="M0 178 Q130 152 270 172 T400 168 V200 H0 Z" fill={D} />{tree(60, 1)}{tree(110, 0.8)}</g>,
@@ -602,7 +605,21 @@ function HeroScene({ category }) {
     uitgaan: <g><circle cx="200" cy="80" r="40" fill={W} /><g stroke={D} strokeWidth="1.5">{[-40, -20, 0, 20, 40].map((d) => <line key={"h" + d} x1="160" y1={80 + d} x2="240" y2={80 + d} />)}{[-40, -20, 0, 20, 40].map((d) => <line key={"v" + d} x1={200 + d} y1="40" x2={200 + d} y2="120" />)}</g><g fill={L}><circle cx="80" cy="50" r="3" /><circle cx="320" cy="60" r="3" /><circle cx="300" cy="30" r="2" /></g></g>,
     bezienswaardigheid: <g><path d="M180 40 H220 V60 L235 70 V180 H165 V70 L180 60 Z" fill={W} /><rect x="190" y="100" width="20" height="80" fill={D} /><path d="M0 180 H400 V200 H0 Z" fill={D} /><circle cx="200" cy="34" r="6" fill={L} /></g>,
   };
-  return <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 w-full h-full" aria-hidden="true">{scenes[category] || null}</svg>;
+  // Variatie-laag: wolken, vogels of sterren — verschilt per uitje.
+  const extras = [];
+  const nClouds = Math.floor(rnd(2) * 3); // 0–2 wolken
+  for (let i = 0; i < nClouds; i++) {
+    const cx = 40 + rnd(i * 3 + 1) * 320, cy = 22 + rnd(i * 3 + 2) * 36, s = 0.55 + rnd(i * 3 + 3) * 0.7;
+    extras.push(<g key={"c" + i} transform={`translate(${cx},${cy}) scale(${s})`} fill={W}><ellipse cx="0" cy="0" rx="22" ry="11" /><ellipse cx="-14" cy="3" rx="13" ry="8" /><ellipse cx="14" cy="3" rx="13" ry="8" /></g>);
+  }
+  if (rnd(5) > 0.62) extras.push(<g key="b" stroke={D} strokeWidth="2" fill="none">{[0, 1, 2].map((i) => { const bx = 110 + i * 42 + rnd(i + 9) * 20, by = 38 + rnd(i + 11) * 22; return <path key={i} d={`M${bx} ${by} q6 -6 12 0 q6 -6 12 0`} />; })}</g>);
+  else if (rnd(3) > 0.6) extras.push(<g key="s" fill={L}>{[0, 1, 2, 3].map((i) => <circle key={i} cx={50 + rnd(i + 20) * 300} cy={20 + rnd(i + 21) * 40} r={1 + rnd(i + 22) * 2} />)}</g>);
+  return (
+    <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 w-full h-full" aria-hidden="true">
+      <g transform={flip ? "translate(400,0) scale(-1,1)" : undefined}>{scenes[category] || null}</g>
+      {extras}
+    </svg>
+  );
 }
 
 function Hero({ a, h = 200, rounded = "rounded-t-[26px]" }) {
@@ -610,7 +627,7 @@ function Hero({ a, h = 200, rounded = "rounded-t-[26px]" }) {
   return (
     <div className={"relative overflow-hidden " + rounded} style={{ height: h, background: `linear-gradient(135deg, ${c.g[0]}, ${c.g[1]})` }}>
       <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.5) 1.5px, transparent 0)", backgroundSize: "22px 22px" }} />
-      <HeroScene category={a.category} />
+      <HeroScene category={a.category} seed={a.id} />
       <div className="absolute inset-0 grid place-items-center">
         <span className="text-[84px] drop-shadow-md select-none" aria-hidden="true">{a.emoji}</span>
       </div>
@@ -774,7 +791,7 @@ function RouletteOverlay({ preview }) {
           {preview && (
             <div key={preview.id} className="win-in h-full flex flex-col">
               <div className="h-24 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${CAT[preview.category].g[0]}, ${CAT[preview.category].g[1]})` }}>
-                <HeroScene category={preview.category} />
+                <HeroScene category={preview.category} seed={preview.id} />
                 <div className="absolute inset-0 grid place-items-center"><span className="text-5xl drop-shadow">{preview.emoji}</span></div>
               </div>
               <div className="flex-1 grid place-items-center px-3">
@@ -902,6 +919,10 @@ function FiltersSheet({ open, onClose, prefs, setPrefs, count }) {
             <button onClick={() => setPrefs({ ...prefs, hideDone: !prefs.hideDone })} className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-card">
               <span className="font-bold text-ink flex items-center gap-2"><Icon name="circle-check" size={18} /> Verberg wat we al deden</span>
               <span className="switch" data-on={prefs.hideDone}><span className="knob" /></span>
+            </button>
+            <button onClick={() => setPrefs({ ...prefs, hideClosed: !prefs.hideClosed })} className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-card">
+              <span className="font-bold text-ink flex items-center gap-2"><Icon name="calendar-check" size={18} /> Alleen wat nu open is</span>
+              <span className="switch" data-on={prefs.hideClosed}><span className="knob" /></span>
             </button>
           </section>
         </div>
@@ -1093,7 +1114,7 @@ function IntroOverlay({ onClose }) {
 function App() {
   const [tab, setTab] = useState("home");
   const [prefs, setPrefs] = useState(() => {
-    const defaults = { company: "gezin", ages: [2, 6], adults: 2, radius: 75, budgets: ["gratis", "low", "mid", "high"], excludeCats: [], indoorOnly: false, hideDone: false, origin: HARDENBERG };
+    const defaults = { company: "gezin", ages: [2, 6], adults: 2, radius: 75, budgets: ["gratis", "low", "mid", "high"], excludeCats: [], indoorOnly: false, hideDone: false, hideClosed: false, origin: HARDENBERG };
     return { ...defaults, ...loadJSON(PREFS_KEY, {}) };
   });
   const [favIds, setFavIds] = useState(() => loadJSON(FAV_KEY, []));
@@ -1161,6 +1182,7 @@ function App() {
     .filter((a) => !prefs.excludeCats.includes(a.category))
     .filter((a) => (prefs.indoorOnly ? a.indoor_friendly : true))
     .filter((a) => (prefs.hideDone ? !doneIds.includes(a.id) : true))
+    .filter((a) => (prefs.hideClosed ? seasonInfo(a).open : true))
     .map((a) => ({ ...a, fit: fitScore(a, prefs.ages) })), [prefs, doneIds]);
 
   const rainyActive = weatherOn && weather?.ok && weather.rainy;
@@ -1179,16 +1201,24 @@ function App() {
     if (!candidates.length) { setEmpty(true); setDetail(null); return; }
     const indoorPool = candidates.filter((c) => c.indoor_friendly);
     const rollPool = rainyActive && indoorPool.length ? indoorPool : candidates;
+    // Kies vooraf — het wiel landt straks zichtbaar op dít uitje.
+    const chosen = weightedPick(rollPool); lastId.current = chosen.id;
     setEmpty(false); Sound.unlock(); Sound.whoosh(); vibrate(12); setRolling(true);
-    const total = 14; let i = 0;
+    const total = 24; let i = 0;
     const step = () => {
-      setPreview(rollPool[Math.floor(Math.random() * rollPool.length)]);
-      Sound.tick(); i++;
-      if (i < total) setTimeout(step, 45 + i * i * 1.1);
-      else {
-        const chosen = weightedPick(rollPool); lastId.current = chosen.id;
-        setRolling(false); setPreview(null); setDetail(chosen); setTab("home");
-        Sound.ding(); vibrate([18, 40, 18]); confettiBurst();
+      i++;
+      if (i < total - 1) {
+        // snel cyclen, daarna afremmen
+        setPreview(rollPool[Math.floor(Math.random() * rollPool.length)]);
+        Sound.tick();
+        setTimeout(step, 38 + i * i * 1.0);
+      } else {
+        // landt op de gekozen activiteit en houdt 'm even vast
+        setPreview(chosen); Sound.tick(); vibrate(20);
+        setTimeout(() => {
+          setRolling(false); setPreview(null); setDetail(chosen); setTab("home");
+          Sound.ding(); vibrate([18, 40, 18]); confettiBurst();
+        }, 750);
       }
     };
     step();
