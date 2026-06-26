@@ -10,6 +10,24 @@ const HARDENBERG = { name: "Hardenberg", lat: 52.5752, lng: 6.6177 };
 const FAV_KEY = "hup.favorites.v1";
 const PREFS_KEY = "hup.prefs.v2";
 const SOUND_KEY = "hup.sound.v1";
+const DONE_KEY = "hup.done.v1";
+const WEATHER_KEY = "hup.weather.v1";
+const SEEN_KEY = "hup.seen.v1";
+
+async function fetchWeather(lat, lng) {
+  try {
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_probability_max,weathercode,temperature_2m_max&timezone=auto&forecast_days=1`;
+    const r = await fetch(u);
+    if (!r.ok) throw new Error("weather");
+    const d = await r.json();
+    const prob = d.daily?.precipitation_probability_max?.[0] ?? 0;
+    const code = d.daily?.weathercode?.[0] ?? 0;
+    const tmax = d.daily?.temperature_2m_max?.[0];
+    return { ok: true, rainy: prob >= 50 || code >= 51, prob, code, tmax };
+  } catch {
+    return { ok: false };
+  }
+}
 
 const CAT = {
   natuur:    { label: "Natuur",     g: ["#34d399", "#0d9488"] },
@@ -530,7 +548,7 @@ function MiniMap({ a, onOpen }) {
 function mapsUrl(a) { return "https://www.google.com/maps/dir/?api=1&destination=" + a.lat + "," + a.lng + "&travelmode=driving"; }
 
 /* ----------------------------------------------------- detail screen */
-function DetailView({ a, isFav, onFav, onBack, onNext }) {
+function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone }) {
   const se = seasonInfo(a);
   return (
     <div className="fixed inset-0 z-40 bg-mint flex flex-col fade">
@@ -540,13 +558,17 @@ function DetailView({ a, isFav, onFav, onBack, onNext }) {
         </button>
         <h1 className="font-display font-extrabold tracking-tight text-ink">Activiteit</h1>
         <div className="flex items-center gap-2">
+          <button onClick={onDone} aria-pressed={isDone} aria-label="Markeer als geweest"
+            className={"w-10 h-10 grid place-items-center rounded-full shadow-card active:scale-95 transition " + (isDone ? "bg-teal-500 text-white" : "bg-white text-ink")}>
+            <Icon name={isDone ? "check-circle-2" : "circle-check"} size={20} stroke={2.4} />
+          </button>
           <button onClick={() => shareActivity(a)} aria-label="Delen"
-            className="w-11 h-11 grid place-items-center rounded-full bg-white text-ink shadow-card active:scale-95 transition">
-            <Icon name="share-2" size={20} stroke={2.4} />
+            className="w-10 h-10 grid place-items-center rounded-full bg-white text-ink shadow-card active:scale-95 transition">
+            <Icon name="share-2" size={19} stroke={2.4} />
           </button>
           <button onClick={onFav} aria-pressed={isFav} aria-label="Bewaar favoriet"
-            className={"w-11 h-11 grid place-items-center rounded-full shadow-card active:scale-95 transition " + (isFav ? "bg-rose-500 text-white" : "bg-white text-ink")}>
-            <Icon name="heart" size={22} stroke={isFav ? 0 : 2.4} className={isFav ? "fill-current" : ""} />
+            className={"w-10 h-10 grid place-items-center rounded-full shadow-card active:scale-95 transition " + (isFav ? "bg-rose-500 text-white" : "bg-white text-ink")}>
+            <Icon name="heart" size={20} stroke={isFav ? 0 : 2.4} className={isFav ? "fill-current" : ""} />
           </button>
         </div>
       </header>
@@ -592,7 +614,7 @@ function DetailView({ a, isFav, onFav, onBack, onNext }) {
             </a>
           </div>
         </div>
-        <div className="flex items-center justify-center gap-4 mt-4">
+        <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 mt-4">
           <button onClick={() => shareActivity(a)} className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700"><Icon name="share-2" size={15} stroke={2.4} /> Deel dit uitje</button>
           <span className="text-muted/40">·</span>
           <button onClick={() => reportMail(a)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted"><Icon name="flag" size={14} /> Klopt iets niet?</button>
@@ -743,11 +765,15 @@ function FiltersSheet({ open, onClose, prefs, setPrefs, count }) {
             </div>
           </section>
 
-          {/* Alleen binnen */}
-          <section>
+          {/* Alleen binnen + verberg gedaan */}
+          <section className="space-y-3">
             <button onClick={() => setPrefs({ ...prefs, indoorOnly: !prefs.indoorOnly })} className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-card">
               <span className="font-bold text-ink flex items-center gap-2"><Icon name="home" size={18} /> Alleen binnen</span>
               <span className="switch" data-on={prefs.indoorOnly}><span className="knob" /></span>
+            </button>
+            <button onClick={() => setPrefs({ ...prefs, hideDone: !prefs.hideDone })} className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-card">
+              <span className="font-bold text-ink flex items-center gap-2"><Icon name="circle-check" size={18} /> Verberg wat we al deden</span>
+              <span className="switch" data-on={prefs.hideDone}><span className="knob" /></span>
             </button>
           </section>
         </div>
@@ -872,11 +898,37 @@ function BrowseView({ items, totalAll, query, setQuery, sort, setSort, favIds, o
   );
 }
 
+/* ----------------------------------------------------- onboarding */
+function IntroOverlay({ onClose }) {
+  const rows = [
+    ["users", "Kies met wie — gezin, partner, vrienden of oma"],
+    ["sliders-horizontal", "Stel afstand, budget en soort uitje in"],
+    ["share-2", "Bewaar favorieten en deel met vrienden"],
+  ];
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center p-6 fade" style={{ background: "rgba(234,247,244,0.96)", backdropFilter: "blur(4px)" }}>
+      <div className="max-w-sm w-full text-center">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-teal-500 grid place-items-center text-white shadow-card mb-4"><Icon name="sparkles" size={30} stroke={2.4} /></div>
+        <h1 className="font-display text-3xl font-extrabold text-ink">Welkom bij Hup!</h1>
+        <p className="text-muted mt-2 leading-relaxed">Geen idee wat je gaat doen? Tik op <b className="text-ink">Hup!</b> en we kiezen een uitje dat precies past.</p>
+        <div className="mt-5 space-y-2 text-left">
+          {rows.map(([ic, t]) => (
+            <div key={t} className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-card">
+              <Icon name={ic} size={18} className="text-teal-600" /> <span className="text-sm font-semibold text-ink">{t}</span>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} className="mt-6 w-full bg-teal-500 text-white font-display font-extrabold py-4 rounded-2xl shadow-card active:scale-95">Aan de slag 🎉</button>
+      </div>
+    </div>
+  );
+}
+
 /* ----------------------------------------------------- App */
 function App() {
   const [tab, setTab] = useState("home");
   const [prefs, setPrefs] = useState(() => {
-    const defaults = { company: "gezin", ages: [2, 6], adults: 2, radius: 75, budgets: ["gratis", "low", "mid", "high"], excludeCats: [], indoorOnly: false, origin: HARDENBERG };
+    const defaults = { company: "gezin", ages: [2, 6], adults: 2, radius: 75, budgets: ["gratis", "low", "mid", "high"], excludeCats: [], indoorOnly: false, hideDone: false, origin: HARDENBERG };
     return { ...defaults, ...loadJSON(PREFS_KEY, {}) };
   });
   const [favIds, setFavIds] = useState(() => loadJSON(FAV_KEY, []));
@@ -888,10 +940,29 @@ function App() {
   const [soundOn, setSoundOn] = useState(Sound.enabled);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("afstand");
+  const [doneIds, setDoneIds] = useState(() => loadJSON(DONE_KEY, []));
+  const [weatherOn, setWeatherOn] = useState(() => loadJSON(WEATHER_KEY, false));
+  const [weather, setWeather] = useState(null);
+  const [showIntro, setShowIntro] = useState(() => !loadJSON(SEEN_KEY, false));
+  const [installEvt, setInstallEvt] = useState(null);
   const lastId = useRef(null);
 
   useEffect(() => saveJSON(PREFS_KEY, prefs), [prefs]);
   useEffect(() => saveJSON(FAV_KEY, favIds), [favIds]);
+  useEffect(() => saveJSON(DONE_KEY, doneIds), [doneIds]);
+  useEffect(() => saveJSON(WEATHER_KEY, weatherOn), [weatherOn]);
+  useEffect(() => {
+    const h = (e) => { e.preventDefault(); setInstallEvt(e); };
+    window.addEventListener("beforeinstallprompt", h);
+    return () => window.removeEventListener("beforeinstallprompt", h);
+  }, []);
+  useEffect(() => {
+    if (!weatherOn) { setWeather(null); return; }
+    if (loadJSON("hup.debugRain", false)) { setWeather({ ok: true, rainy: true, tmax: 12, prob: 90 }); return; }
+    let alive = true;
+    fetchWeather((prefs.origin || HARDENBERG).lat, (prefs.origin || HARDENBERG).lng).then((wx) => { if (alive) setWeather(wx); });
+    return () => { alive = false; };
+  }, [weatherOn, prefs.origin]);
 
   const origin = prefs.origin || HARDENBERG;
   const withMeta = (a) => ({ ...a, distance: haversine(origin.lat, origin.lng, a.lat, a.lng) });
@@ -919,11 +990,15 @@ function App() {
     .filter((a) => prefs.budgets.includes(priceTier(a.prijs)))
     .filter((a) => !prefs.excludeCats.includes(a.category))
     .filter((a) => (prefs.indoorOnly ? a.indoor_friendly : true))
-    .map((a) => ({ ...a, fit: fitScore(a, prefs.ages) })), [prefs]);
+    .filter((a) => (prefs.hideDone ? !doneIds.includes(a.id) : true))
+    .map((a) => ({ ...a, fit: fitScore(a, prefs.ages) })), [prefs, doneIds]);
 
-  const weightedPick = useCallback(() => {
-    const pool = candidates.filter((c) => c.id !== lastId.current);
-    const draw = pool.length ? pool : candidates;
+  const rainyActive = weatherOn && weather?.ok && weather.rainy;
+
+  const weightedPick = useCallback((poolIn) => {
+    const base = poolIn && poolIn.length ? poolIn : candidates;
+    const pool = base.filter((c) => c.id !== lastId.current);
+    const draw = pool.length ? pool : base;
     const bag = [];
     draw.forEach((c) => { const w = 1 + Math.round(c.fit * 3); for (let i = 0; i < w; i++) bag.push(c); });
     return bag[Math.floor(Math.random() * bag.length)];
@@ -932,20 +1007,22 @@ function App() {
   const roll = useCallback(() => {
     if (rolling) return;
     if (!candidates.length) { setEmpty(true); setDetail(null); return; }
+    const indoorPool = candidates.filter((c) => c.indoor_friendly);
+    const rollPool = rainyActive && indoorPool.length ? indoorPool : candidates;
     setEmpty(false); Sound.unlock(); Sound.whoosh(); vibrate(12); setRolling(true);
     const total = 14; let i = 0;
     const step = () => {
-      setPreview(candidates[Math.floor(Math.random() * candidates.length)]);
+      setPreview(rollPool[Math.floor(Math.random() * rollPool.length)]);
       Sound.tick(); i++;
       if (i < total) setTimeout(step, 45 + i * i * 1.1);
       else {
-        const chosen = weightedPick(); lastId.current = chosen.id;
+        const chosen = weightedPick(rollPool); lastId.current = chosen.id;
         setRolling(false); setPreview(null); setDetail(chosen); setTab("home");
         Sound.ding(); vibrate([18, 40, 18]);
       }
     };
     step();
-  }, [rolling, candidates, weightedPick]);
+  }, [rolling, candidates, weightedPick, rainyActive]);
 
   const browse = useMemo(() => {
     let list = candidates.slice();
@@ -958,6 +1035,8 @@ function App() {
   }, [candidates, query, sort]);
 
   const toggleFav = (id) => setFavIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const toggleDone = (id) => setDoneIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const dismissIntro = () => { setShowIntro(false); saveJSON(SEEN_KEY, true); };
   const w = ageWindow(prefs.ages);
   const favs = ACTIVITIES.filter((a) => favIds.includes(a.id)).map(withMeta);
 
@@ -994,6 +1073,16 @@ function App() {
               </button>
             ))}
           </div>
+
+          {weatherOn && weather?.ok && (
+            <div className="mt-5 rounded-2xl px-4 py-3 flex items-center gap-2 text-sm font-bold"
+              style={weather.rainy ? { background: "#E0F2FE", color: "#075985" } : { background: "#FEF3C7", color: "#92400E" }}>
+              <Icon name={weather.rainy ? "cloud-rain" : "sun"} size={18} />
+              {weather.rainy
+                ? "Regen verwacht — we kiezen binnen-uitjes ☔"
+                : `Mooi weer${weather.tmax != null ? ` (${Math.round(weather.tmax)}°)` : ""} — top om eropuit te gaan! ☀️`}
+            </div>
+          )}
 
           <div className="flex flex-col items-center mt-8">
             <button onClick={roll} disabled={rolling}
@@ -1099,15 +1188,30 @@ function App() {
               <span className="font-bold text-ink flex items-center gap-3"><Icon name={soundOn ? "volume-2" : "volume-x"} size={20} className="text-teal-600" /> Geluid</span>
               <span className="switch" data-on={soundOn}><span className="knob" /></span>
             </button>
+            <button onClick={() => setWeatherOn(!weatherOn)} className="w-full flex items-center justify-between px-5 py-4">
+              <span className="font-bold text-ink flex items-center gap-3"><Icon name="cloud-sun" size={20} className="text-teal-600" /> Weer slim <span className="text-xs font-semibold text-muted">regen → binnen</span></span>
+              <span className="switch" data-on={weatherOn}><span className="knob" /></span>
+            </button>
             <button onClick={() => setFiltersOpen(true)} className="w-full flex items-center justify-between px-5 py-4">
               <span className="font-bold text-ink flex items-center gap-3"><Icon name="sliders-horizontal" size={20} className="text-teal-600" /> Filters & gezin</span>
               <Icon name="chevron-right" size={20} className="text-muted" />
+            </button>
+            <button onClick={() => { if (doneIds.length && confirm("'Al gedaan'-lijst wissen?")) setDoneIds([]); }} className="w-full flex items-center justify-between px-5 py-4">
+              <span className="font-bold text-ink flex items-center gap-3"><Icon name="circle-check" size={20} className="text-teal-600" /> Al gedaan</span>
+              <span className="text-sm text-muted font-bold">{doneIds.length}</span>
             </button>
             <button onClick={() => { if (confirm("Alle favorieten verwijderen?")) setFavIds([]); }} className="w-full flex items-center justify-between px-5 py-4">
               <span className="font-bold text-ink flex items-center gap-3"><Icon name="trash-2" size={20} className="text-teal-600" /> Favorieten wissen</span>
               <span className="text-sm text-muted font-bold">{favIds.length}</span>
             </button>
           </div>
+
+          {installEvt && (
+            <button onClick={async () => { installEvt.prompt(); try { await installEvt.userChoice; } catch {} setInstallEvt(null); }}
+              className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-white text-ink font-bold py-4 rounded-3xl shadow-card active:scale-[.98] transition border border-line">
+              <Icon name="download" size={20} className="text-teal-600" /> Installeer Hup! op je telefoon
+            </button>
+          )}
 
           <button onClick={shareApp} className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-teal-500 text-white font-display font-extrabold py-4 rounded-3xl shadow-card active:scale-[.98] transition">
             <Icon name="share-2" size={20} stroke={2.5} /> Deel Hup! met vrienden
@@ -1146,9 +1250,10 @@ function App() {
       {/* ---------- overlays ---------- */}
       {rolling && <RouletteOverlay preview={preview} />}
       {detail && !rolling && (
-        <DetailView a={detail} isFav={favIds.includes(detail.id)} onFav={() => toggleFav(detail.id)} onBack={() => setDetail(null)} onNext={roll} />
+        <DetailView a={detail} isFav={favIds.includes(detail.id)} onFav={() => toggleFav(detail.id)} onBack={() => setDetail(null)} onNext={roll} isDone={doneIds.includes(detail.id)} onDone={() => toggleDone(detail.id)} />
       )}
       <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} prefs={prefs} setPrefs={setPrefs} count={candidates.length} />
+      {showIntro && !detail && <IntroOverlay onClose={dismissIntro} />}
     </div>
   );
 }

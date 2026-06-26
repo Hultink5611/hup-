@@ -1,5 +1,16 @@
 # Changelog — Hup!
 
+## v2.9 — Slimmer & plakkeriger
+- **Weer-modus** ("Weer slim"): bij regen kiest Hup automatisch binnen-uitjes,
+  met een weerbanner op Home (Open-Meteo, gratis, geen key; offline = uit).
+- **"Al gedaan"-historie**: markeer uitjes als geweest en verberg ze optioneel
+  (filter "Verberg wat we al deden"), zodat je steeds iets nieuws krijgt.
+- **Onboarding**: korte welkom-intro bij de eerste keer.
+- **Installeer-knop**: PWA toevoegen aan je beginscherm (waar ondersteund).
+- **Data-validatiescript** (`validate.mjs`): controleert alle 224 uitjes op
+  geldige velden, categorieën, audiences en NL-coördinaten. Nu: 0 fouten.
+- Service Worker → `hup-v13`.
+
 ## v2.8 — Delen & groeien
 - **Deelbare links**: deel een uitje via WhatsApp/socials (Web Share API, met
   clipboard-fallback). Een gedeelde link (`?a=<id>`) opent meteen dat uitje.
