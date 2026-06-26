@@ -1,5 +1,12 @@
 # Changelog — Hup!
 
+## v2.11 — Delight & agenda
+- 🎉 **Confetti** wanneer Hup een uitje voor je kiest (respecteert
+  reduced-motion; ruimt zichzelf gegarandeerd op).
+- 📅 **"Zet in agenda"** op de detailkaart (Google Agenda-template met naam,
+  locatie en link terug naar het uitje).
+- Service Worker → `hup-v15`.
+
 ## v2.10 — Kaartweergave
 - **Kaart in Ontdek**: schakel tussen lijst en kaart. Alle (gefilterde) uitjes
   als categorie-pins op een interactieve kaart (Leaflet + OpenStreetMap).

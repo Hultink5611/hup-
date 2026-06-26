@@ -149,6 +149,47 @@ function reportMail(a) {
   location.href = "mailto:" + CONTACT + "?subject=" + encodeURIComponent("Hup! — melding: " + a.name) +
     "&body=" + encodeURIComponent("Er klopt iets niet bij '" + a.name + "' (" + a.plaats + "):\n\n");
 }
+function calendarUrl(a) {
+  const text = "Uitje: " + a.name;
+  const details = (a.desc || "") + "\n\nMeer info: " + searchUrl(a) + "\nOpen in Hup!: " + activityLink(a);
+  const loc = a.name + ", " + a.plaats;
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(text) +
+    "&details=" + encodeURIComponent(details) + "&location=" + encodeURIComponent(loc);
+}
+function confettiBurst() {
+  try {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    document.querySelectorAll("canvas.hup-confetti").forEach((el) => el.remove());
+    const c = document.createElement("canvas");
+    c.className = "hup-confetti";
+    c.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:55";
+    c.width = innerWidth; c.height = innerHeight;
+    document.body.appendChild(c);
+    // Harde opruim-garantie, ook als requestAnimationFrame wordt geknepen.
+    setTimeout(() => c.remove(), 2600);
+    const ctx = c.getContext("2d");
+    const colors = ["#14b8a6", "#f59e0b", "#e11d48", "#6366f1", "#22c55e", "#ec4899"];
+    const parts = Array.from({ length: 90 }, () => ({
+      x: innerWidth / 2 + (Math.random() - 0.5) * 140, y: innerHeight * 0.42,
+      vx: (Math.random() - 0.5) * 9, vy: -6 - Math.random() * 9,
+      g: 0.28 + Math.random() * 0.16, s: 5 + Math.random() * 6,
+      col: colors[(Math.random() * colors.length) | 0], rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+    }));
+    let frames = 0, raf;
+    const tick = () => {
+      frames++;
+      ctx.clearRect(0, 0, c.width, c.height);
+      parts.forEach((p) => {
+        p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.vx *= 0.99;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = p.col; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore();
+      });
+      if (frames < 95) raf = requestAnimationFrame(tick);
+      else { cancelAnimationFrame(raf); c.remove(); }
+    };
+    tick();
+  } catch {}
+}
 
 /* ---------------------------------------------------------------- database
  * Velden: min_age, max_age, prijs(€/p.p. indicatief), indoor_friendly,
@@ -612,6 +653,10 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone }) {
               className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-mint text-teal-700 font-bold py-3 rounded-2xl active:scale-[.98] transition">
               <Icon name="search" size={18} stroke={2.4} /> Check openingstijden & actuele info
             </a>
+            <a href={calendarUrl(a)} target="_blank" rel="noopener"
+              className="mt-2 w-full inline-flex items-center justify-center gap-2 bg-white text-ink font-bold py-3 rounded-2xl border border-line active:scale-[.98] transition">
+              <Icon name="calendar-plus" size={18} stroke={2.4} className="text-teal-600" /> Zet in agenda
+            </a>
           </div>
         </div>
         <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 mt-4">
@@ -1055,7 +1100,7 @@ function App() {
       else {
         const chosen = weightedPick(rollPool); lastId.current = chosen.id;
         setRolling(false); setPreview(null); setDetail(chosen); setTab("home");
-        Sound.ding(); vibrate([18, 40, 18]);
+        Sound.ding(); vibrate([18, 40, 18]); confettiBurst();
       }
     };
     step();
