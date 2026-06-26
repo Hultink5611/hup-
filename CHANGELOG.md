@@ -1,5 +1,13 @@
 # Changelog — Hup!
 
+## v2.14 — Database 224 → 260 uitjes
+- 36 nieuwe geverifieerde plekken (research juni 2026, met bronnen), vooral in
+  de dunnere categorieën: cultuur (6→16), water/zwemmen (15→23), kinderboerderijen
+  & dierenparken (21→29), indoor speelhallen en bezienswaardigheden.
+- O.a.: bioscoop & filmhuis, molens, kastelen, beeldentuinen, Gevangenismuseum,
+  natuurzwembaden, speelbossen en kinderboerderijen door heel de regio.
+- Service Worker → `hup-v18`.
+
 ## v2.13 — Bewaard: Favorieten ✕ Geweest + delen
 - De **Favorieten-tab** heeft nu twee tabbladen: **Favorieten** en **Geweest**
   (je afgevinkte avonturen) — houd bij wat je nog wilt doen én wat je al deed.
