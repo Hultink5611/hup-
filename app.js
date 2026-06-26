@@ -656,8 +656,15 @@ function MiniMap({ a, onOpen }) {
 function mapsUrl(a) { return "https://www.google.com/maps/dir/?api=1&destination=" + a.lat + "," + a.lng + "&travelmode=driving"; }
 
 /* ----------------------------------------------------- detail screen */
-function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone }) {
+function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, rainy }) {
   const se = seasonInfo(a);
+  const reasons = [];
+  if (rainy && a.indoor_friendly) reasons.push("☔ Binnen — fijn met dit weer");
+  if (company && company !== "gezin") reasons.push("Leuk met " + (COMPANY_LABEL[company] || "").toLowerCase());
+  if (a.distance < 20) reasons.push("📍 Lekker dichtbij");
+  if (a.prijs === 0) reasons.push("Gratis");
+  else if (a.prijs <= 10) reasons.push("Budgetvriendelijk");
+  if (a.rating >= 4.5) reasons.push("⭐ Toppertje");
   return (
     <div className="fixed inset-0 z-40 bg-mint flex flex-col fade">
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -690,6 +697,14 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone }) {
               <Icon name="map-pin" size={15} /> {a.plaats}
             </div>
             <div className="mt-3"><Stars value={a.rating} /></div>
+
+            {reasons.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {reasons.slice(0, 3).map((r) => (
+                  <span key={r} className="text-[12px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2.5 py-1">{r}</span>
+                ))}
+              </div>
+            )}
 
             <div className="mt-5 flex items-stretch gap-2 bg-mint rounded-2xl p-3">
               <MetaTile icon="route" label="Afstand" value={a.distance.toFixed(0) + " km"} />
@@ -758,8 +773,9 @@ function RouletteOverlay({ preview }) {
         <div className="w-64 h-44 rounded-[28px] bg-white shadow-soft overflow-hidden mx-auto relative">
           {preview && (
             <div key={preview.id} className="win-in h-full flex flex-col">
-              <div className="h-24" style={{ background: `linear-gradient(135deg, ${CAT[preview.category].g[0]}, ${CAT[preview.category].g[1]})` }}>
-                <div className="h-full grid place-items-center"><span className="text-5xl">{preview.emoji}</span></div>
+              <div className="h-24 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${CAT[preview.category].g[0]}, ${CAT[preview.category].g[1]})` }}>
+                <HeroScene category={preview.category} />
+                <div className="absolute inset-0 grid place-items-center"><span className="text-5xl drop-shadow">{preview.emoji}</span></div>
               </div>
               <div className="flex-1 grid place-items-center px-3">
                 <span className="font-display font-extrabold text-ink leading-tight text-[15px]">{preview.name}</span>
@@ -1436,7 +1452,7 @@ function App() {
       {/* ---------- overlays ---------- */}
       {rolling && <RouletteOverlay preview={preview} />}
       {detail && !rolling && (
-        <DetailView a={detail} isFav={favIds.includes(detail.id)} onFav={() => toggleFav(detail.id)} onBack={() => setDetail(null)} onNext={roll} isDone={doneIds.includes(detail.id)} onDone={() => toggleDone(detail.id)} />
+        <DetailView a={detail} isFav={favIds.includes(detail.id)} onFav={() => toggleFav(detail.id)} onBack={() => setDetail(null)} onNext={roll} isDone={doneIds.includes(detail.id)} onDone={() => toggleDone(detail.id)} company={prefs.company} rainy={rainyActive} />
       )}
       <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} prefs={prefs} setPrefs={setPrefs} count={candidates.length} />
       {showIntro && !detail && <IntroOverlay onClose={dismissIntro} />}

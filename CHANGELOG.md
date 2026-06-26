@@ -1,5 +1,11 @@
 # Changelog — Hup!
 
+## v2.16 — "Waarom dit past" + scènes in de roulette
+- De detailkaart toont nu **match-redenen** als chips (bv. "Binnen — fijn met
+  dit weer", "Leuk met partner", "Lekker dichtbij", "Gratis", "Toppertje").
+- De **roulette-kaartjes** krijgen dezelfde rijke per-categorie scène.
+- Service Worker → `hup-v20`.
+
 ## v2.15 — Rijkere visuals (per-categorie illustraties)
 - Elke detailkaart heeft nu een **sfeervolle, per-categorie SVG-scène** achter
   de emoji (heuvels & bomen voor natuur, zuilen voor museum, golven voor water,
