@@ -1,5 +1,12 @@
 # Changelog — Hup!
 
+## v2.15 — Rijkere visuals (per-categorie illustraties)
+- Elke detailkaart heeft nu een **sfeervolle, per-categorie SVG-scène** achter
+  de emoji (heuvels & bomen voor natuur, zuilen voor museum, golven voor water,
+  bergen voor avontuur, lotus & stoom voor wellness, enz.).
+- Offline en rechtenvrij — geen externe foto's nodig.
+- Service Worker → `hup-v19`.
+
 ## v2.14 — Database 224 → 260 uitjes
 - 36 nieuwe geverifieerde plekken (research juni 2026, met bronnen), vooral in
   de dunnere categorieën: cultuur (6→16), water/zwemmen (15→23), kinderboerderijen

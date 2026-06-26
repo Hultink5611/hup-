@@ -583,15 +583,36 @@ function Stars({ value, size = 16 }) {
 }
 
 /* ----------------------------------------------------- visual hero */
+// Sfeervolle, per-categorie SVG-scène achter de emoji. Wit/zwart met opacity
+// zodat het op elke categorie-gradient elegant oogt.
+function HeroScene({ category }) {
+  const W = "rgba(255,255,255,0.22)", D = "rgba(0,0,0,0.10)", L = "rgba(255,255,255,0.42)";
+  const tree = (x, s) => <g transform={`translate(${x},155) scale(${s})`} fill={D}><rect x="-3" y="0" width="6" height="22" /><path d="M0 -30 L20 6 H-20 Z" /><path d="M0 -48 L16 -16 H-16 Z" /></g>;
+  const scenes = {
+    natuur: <g><circle cx="330" cy="46" r="24" fill={L} /><path d="M0 150 Q100 116 210 140 T400 132 V200 H0 Z" fill={W} /><path d="M0 178 Q130 152 270 172 T400 168 V200 H0 Z" fill={D} />{tree(60, 1)}{tree(110, 0.8)}</g>,
+    water: <g><circle cx="330" cy="46" r="22" fill={L} /><path d="M0 150 Q50 138 100 150 T200 150 T300 150 T400 150 V200 H0 Z" fill={W} /><path d="M0 168 Q50 156 100 168 T200 168 T300 168 T400 168 V200 H0 Z" fill={D} /><path d="M0 186 Q50 176 100 186 T200 186 T300 186 T400 186 V200 H0 Z" fill={W} /></g>,
+    dieren: <g><path d="M0 172 H400 V200 H0 Z" fill={D} /><g fill={W}>{[40, 80, 120].map((x, i) => <g key={i}><circle cx={x} cy={140 + (i % 2) * 14} r="7" /><circle cx={x - 7} cy={132 + (i % 2) * 14} r="3" /><circle cx={x + 7} cy={132 + (i % 2) * 14} r="3" /></g>)}</g><circle cx="330" cy="48" r="22" fill={L} /></g>,
+    speeltuin: <g><path d="M0 178 H400 V200 H0 Z" fill={D} /><path d="M120 110 L120 175 M120 110 Q150 110 160 175" stroke={W} strokeWidth="8" fill="none" /><circle cx="300" cy="150" r="20" fill={W} /><path d="M300 130 a20 20 0 0 1 0 40" fill={D} /></g>,
+    binnenpret: <g>{[[70, 70], [120, 50], [300, 60], [340, 90]].map(([x, y], i) => <g key={i}><ellipse cx={x} cy={y} rx="16" ry="20" fill={i % 2 ? W : L} /><path d={`M${x} ${y + 20} q6 14 0 28`} stroke={D} strokeWidth="2" fill="none" /></g>)}</g>,
+    avontuur: <g><path d="M0 175 L90 90 L160 175 Z" fill={D} /><path d="M120 175 L230 70 L340 175 Z" fill={W} /><path d="M230 70 L255 96 L240 100 Z" fill={L} /><line x1="40" y1="60" x2="380" y2="120" stroke={W} strokeWidth="3" /></g>,
+    museum: <g><rect x="90" y="100" width="220" height="80" fill={W} /><path d="M80 100 L200 50 L320 100 Z" fill={D} />{[110, 150, 190, 230, 270].map((x) => <rect key={x} x={x} y="110" width="12" height="70" fill={D} />)}</g>,
+    cultuur: <g><path d="M150 0 L60 200 H0 V0 Z" fill={W} opacity="0.5" /><path d="M250 0 L340 200 H400 V0 Z" fill={W} opacity="0.5" /><path d="M200 70 l9 19 21 2 -15 15 4 21 -19 -10 -19 10 4 -21 -15 -15 21 -2 Z" fill={L} /></g>,
+    eten: <g><ellipse cx="200" cy="165" rx="95" ry="22" fill={D} /><ellipse cx="200" cy="158" rx="78" ry="16" fill={W} />{[170, 200, 230].map((x) => <path key={x} d={`M${x} 80 q-8 16 0 32 q8 -16 0 -32`} stroke={L} strokeWidth="3" fill="none" />)}</g>,
+    wellness: <g><g fill={W}><ellipse cx="200" cy="170" rx="44" ry="13" /><ellipse cx="200" cy="150" rx="34" ry="11" /><ellipse cx="200" cy="133" rx="24" ry="9" /></g>{[160, 200, 240].map((x) => <path key={x} d={`M${x} 110 q-10 -14 0 -28 q10 14 0 28`} stroke={L} strokeWidth="3" fill="none" />)}</g>,
+    uitgaan: <g><circle cx="200" cy="80" r="40" fill={W} /><g stroke={D} strokeWidth="1.5">{[-40, -20, 0, 20, 40].map((d) => <line key={"h" + d} x1="160" y1={80 + d} x2="240" y2={80 + d} />)}{[-40, -20, 0, 20, 40].map((d) => <line key={"v" + d} x1={200 + d} y1="40" x2={200 + d} y2="120" />)}</g><g fill={L}><circle cx="80" cy="50" r="3" /><circle cx="320" cy="60" r="3" /><circle cx="300" cy="30" r="2" /></g></g>,
+    bezienswaardigheid: <g><path d="M180 40 H220 V60 L235 70 V180 H165 V70 L180 60 Z" fill={W} /><rect x="190" y="100" width="20" height="80" fill={D} /><path d="M0 180 H400 V200 H0 Z" fill={D} /><circle cx="200" cy="34" r="6" fill={L} /></g>,
+  };
+  return <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 w-full h-full" aria-hidden="true">{scenes[category] || null}</svg>;
+}
+
 function Hero({ a, h = 200, rounded = "rounded-t-[26px]" }) {
   const c = CAT[a.category];
   return (
     <div className={"relative overflow-hidden " + rounded} style={{ height: h, background: `linear-gradient(135deg, ${c.g[0]}, ${c.g[1]})` }}>
-      <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.55) 1.5px, transparent 0)", backgroundSize: "20px 20px" }} />
-      <div className="absolute -right-6 -top-8 w-40 h-40 rounded-full bg-white/15" />
-      <div className="absolute -left-10 bottom-[-30px] w-48 h-48 rounded-full bg-black/5" />
+      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.5) 1.5px, transparent 0)", backgroundSize: "22px 22px" }} />
+      <HeroScene category={a.category} />
       <div className="absolute inset-0 grid place-items-center">
-        <span className="text-[84px] drop-shadow-sm select-none" aria-hidden="true">{a.emoji}</span>
+        <span className="text-[84px] drop-shadow-md select-none" aria-hidden="true">{a.emoji}</span>
       </div>
       <span className="absolute top-3 left-3 text-[11px] font-extrabold uppercase tracking-wider bg-white/85 text-ink px-2.5 py-1 rounded-full">{c.label}</span>
       <span className="absolute top-3 right-3 text-[11px] font-bold bg-black/25 text-white px-2.5 py-1 rounded-full flex items-center gap-1">
