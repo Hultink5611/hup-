@@ -1,5 +1,12 @@
 # Changelog — Hup!
 
+## v2.19 — Carrousel-roulette
+- De "Hup!"-keuze is nu een **draaiende coverflow-carrousel**: het midden-uitje
+  groot, de uitjes ervoor en erna 20% kleiner + transparanter, en die daarbuiten
+  nóg kleiner. Het wiel schuift continu, remt af en **landt zichtbaar in het
+  midden op het uitje dat opent**.
+- Service Worker → `hup-v23`.
+
 ## v2.18 — Stats + nóg meer illustratie-variatie
 - **Persoonlijke stats** in Profiel: "X keer Hup!", favorieten en geweest.
 - **Alternatieve basis-illustraties** voor natuur (meer/water-scène) en avontuur

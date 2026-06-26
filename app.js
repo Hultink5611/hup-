@@ -785,25 +785,50 @@ function DetailView({ a, isFav, onFav, onBack, onNext, isDone, onDone, company, 
   );
 }
 
-/* ----------------------------------------------------- roulette overlay */
-function RouletteOverlay({ preview }) {
+/* ----------------------------------------------------- roulette carrousel */
+function RouletteCard({ a, center }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-mint/70 backdrop-blur-sm fade">
-      <div className="text-center">
-        <div className="w-64 h-44 rounded-[28px] bg-white shadow-soft overflow-hidden mx-auto relative">
-          {preview && (
-            <div key={preview.id} className="win-in h-full flex flex-col">
-              <div className="h-24 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${CAT[preview.category].g[0]}, ${CAT[preview.category].g[1]})` }}>
-                <HeroScene category={preview.category} seed={preview.id} />
-                <div className="absolute inset-0 grid place-items-center"><span className="text-5xl drop-shadow">{preview.emoji}</span></div>
+    <div className="rounded-2xl overflow-hidden bg-white" style={{ boxShadow: center ? "0 14px 34px -8px rgba(15,118,110,.5)" : "0 6px 16px -8px rgba(0,0,0,.3)" }}>
+      <div className="relative" style={{ height: 88, background: `linear-gradient(135deg, ${CAT[a.category].g[0]}, ${CAT[a.category].g[1]})` }}>
+        <HeroScene category={a.category} seed={a.id} />
+        <div className="absolute inset-0 grid place-items-center"><span className="text-4xl drop-shadow">{a.emoji}</span></div>
+      </div>
+      <div className="px-2 py-2 text-center">
+        <p className="font-display font-extrabold text-ink text-[12px] leading-tight truncate">{a.name}</p>
+        <p className="text-[10px] text-muted truncate">{a.plaats}</p>
+      </div>
+    </div>
+  );
+}
+
+function RouletteOverlay({ spin }) {
+  const { pool, idx } = spin;
+  const len = pool.length;
+  const at = (p) => pool[((p % len) + len) % len];
+  const spacing = 100, W = 150;
+  const window = [];
+  for (let o = -3; o <= 3; o++) window.push(idx + o);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center fade" style={{ background: "rgba(18,58,52,0.55)", backdropFilter: "blur(3px)" }}>
+      <div className="text-center w-full">
+        <div className="relative w-full overflow-hidden" style={{ height: 180 }}>
+          {/* midden-markering */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ width: W + 14, height: 152, borderRadius: 22, boxShadow: "0 0 0 3px rgba(255,255,255,.85)" }} />
+          {window.map((p) => {
+            const o = p - idx, d = Math.min(Math.abs(o), 3);
+            return (
+              <div key={p} style={{
+                position: "absolute", left: "50%", top: "50%", width: W,
+                transform: `translate(-50%,-50%) translateX(${o * spacing}px) scale(${1 - 0.2 * d})`,
+                opacity: Math.max(0, 1 - 0.34 * d), zIndex: 20 - d,
+                transition: "transform .2s cubic-bezier(.2,.7,.3,1), opacity .2s ease",
+              }}>
+                <RouletteCard a={at(p)} center={o === 0} />
               </div>
-              <div className="flex-1 grid place-items-center px-3">
-                <span className="font-display font-extrabold text-ink leading-tight text-[15px]">{preview.name}</span>
-              </div>
-            </div>
-          )}
+            );
+          })}
         </div>
-        <p className="mt-5 font-display font-extrabold text-teal-700 text-lg tracking-wide flex items-center justify-center gap-2">
+        <p className="mt-6 font-display font-extrabold text-white text-lg tracking-wide flex items-center justify-center gap-2 drop-shadow">
           <Icon name="sparkles" size={20} /> We kiezen een uitje…
         </p>
       </div>
@@ -1124,7 +1149,7 @@ function App() {
   const [detail, setDetail] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [rolling, setRolling] = useState(false);
-  const [preview, setPreview] = useState(null);
+  const [spin, setSpin] = useState(null);
   const [empty, setEmpty] = useState(false);
   const [soundOn, setSoundOn] = useState(Sound.enabled);
   const [query, setQuery] = useState("");
@@ -1206,25 +1231,26 @@ function App() {
     if (!candidates.length) { setEmpty(true); setDetail(null); return; }
     const indoorPool = candidates.filter((c) => c.indoor_friendly);
     const rollPool = rainyActive && indoorPool.length ? indoorPool : candidates;
-    // Kies vooraf — het wiel landt straks zichtbaar op dít uitje.
+    // Kies vooraf — de carrousel schuift continu en landt exact in het midden op dít uitje.
     const chosen = weightedPick(rollPool); lastId.current = chosen.id;
+    const chosenIdx = Math.max(0, rollPool.indexOf(chosen));
     setEmpty(false); Sound.unlock(); Sound.whoosh(); vibrate(12); setRolling(true);
-    const total = 24; let i = 0;
+    const total = 26;
+    let idx = chosenIdx - total; // zodat idx na 'total' stappen exact op chosenIdx staat
+    setSpin({ pool: rollPool, idx });
+    let i = 0;
     const step = () => {
-      i++;
-      if (i < total - 1) {
-        // snel cyclen, daarna afremmen
-        setPreview(rollPool[Math.floor(Math.random() * rollPool.length)]);
-        Sound.tick();
-        setTimeout(step, 38 + i * i * 1.0);
-      } else {
-        // landt op de gekozen activiteit en houdt 'm even vast
-        setPreview(chosen); Sound.tick(); vibrate(20);
+      i++; idx += 1;
+      setSpin({ pool: rollPool, idx });
+      Sound.tick();
+      if (i < total) setTimeout(step, 34 + i * i * 0.95);
+      else {
+        vibrate(20);
         setTimeout(() => {
-          setRolling(false); setPreview(null); setDetail(chosen); setTab("home");
+          setRolling(false); setSpin(null); setDetail(chosen); setTab("home");
           setRolls((n) => n + 1);
           Sound.ding(); vibrate([18, 40, 18]); confettiBurst();
-        }, 750);
+        }, 850);
       }
     };
     step();
@@ -1496,7 +1522,7 @@ function App() {
       </nav>
 
       {/* ---------- overlays ---------- */}
-      {rolling && <RouletteOverlay preview={preview} />}
+      {rolling && spin && <RouletteOverlay spin={spin} />}
       {detail && !rolling && (
         <DetailView a={detail} isFav={favIds.includes(detail.id)} onFav={() => toggleFav(detail.id)} onBack={() => setDetail(null)} onNext={roll} isDone={doneIds.includes(detail.id)} onDone={() => toggleDone(detail.id)} company={prefs.company} rainy={rainyActive} />
       )}
