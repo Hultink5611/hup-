@@ -1,5 +1,15 @@
 # Changelog — Hup!
 
+## v2.24 — Echte foto's (Wikimedia) bij bekende uitjes
+- De detailkaart en lijst-thumbnails tonen nu een **echte foto** bij uitjes waar
+  een vrij te gebruiken Wikimedia-foto van bestaat (start: 12 bekende attracties
+  zoals Slagharen, Hellendoorn, Paleis Het Loo, Giethoorn, Drents Museum,
+  Gevangenismuseum…), met een klein "foto via Wikimedia"-credit.
+- **Illustratie als fallback** voor de rest én als een foto niet laadt — nooit
+  een leeg of fout plaatje. Gratis, rechtenvrij genoeg, offline-cachebaar.
+- Foto's opgehaald via de Wikipedia REST-API (geverifieerd, geen API-key).
+- Service Worker → `hup-v28`.
+
 ## v2.23 — Reviews-popup eruit, weer directe link
 - De reviews-popup toonde alleen een kaart (geen review-teksten — die zijn niet
   keyless/gratis op te halen), dus die gaf niet wat de gebruiker verwacht.
