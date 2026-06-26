@@ -1235,7 +1235,7 @@ function App() {
     const chosen = weightedPick(rollPool); lastId.current = chosen.id;
     const chosenIdx = Math.max(0, rollPool.indexOf(chosen));
     setEmpty(false); Sound.unlock(); Sound.whoosh(); vibrate(12); setRolling(true);
-    const total = 26;
+    const total = 18;
     let idx = chosenIdx - total; // zodat idx na 'total' stappen exact op chosenIdx staat
     setSpin({ pool: rollPool, idx });
     let i = 0;
@@ -1243,14 +1243,14 @@ function App() {
       i++; idx += 1;
       setSpin({ pool: rollPool, idx });
       Sound.tick();
-      if (i < total) setTimeout(step, 34 + i * i * 0.95);
+      if (i < total) setTimeout(step, 28 + i * i * 0.7);
       else {
         vibrate(20);
         setTimeout(() => {
           setRolling(false); setSpin(null); setDetail(chosen); setTab("home");
           setRolls((n) => n + 1);
           Sound.ding(); vibrate([18, 40, 18]); confettiBurst();
-        }, 850);
+        }, 550);
       }
     };
     step();

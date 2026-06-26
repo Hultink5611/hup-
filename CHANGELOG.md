@@ -1,5 +1,9 @@
 # Changelog — Hup!
 
+## v2.20 — Snellere carrousel
+- De carrousel draait nu wat korter (minder stappen, snellere afrem-curve) —
+  vlotter gevoel, landt nog steeds exact op de gekozen activiteit. SW → `hup-v24`.
+
 ## v2.19 — Carrousel-roulette
 - De "Hup!"-keuze is nu een **draaiende coverflow-carrousel**: het midden-uitje
   groot, de uitjes ervoor en erna 20% kleiner + transparanter, en die daarbuiten
