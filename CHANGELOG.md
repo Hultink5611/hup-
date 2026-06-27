@@ -1,5 +1,13 @@
 # Changelog — Hup!
 
+## v2.25 — Foto's uitgebreid naar alles met een Wikimedia-foto
+- Database automatisch gescand tegen Wikipedia/Wikimedia: nu **36 uitjes met een
+  echte foto** (was 12), bv. Oyfo, Plopsa, Twickel, Singraven, Odeon, Peperbus,
+  Rutbeek, Veluwsche Stoomtrein, Weerribben-Wieden, Drents-Friese Wold e.a.
+- Elke match handmatig gereviewd: 8 foute/plaatsgebonden treffers eruit gefilterd
+  (bv. wijk i.p.v. boerderij, ánder vogelpark) → nooit een verkeerde foto.
+- Illustratie blijft de fallback voor de overige uitjes. Service Worker → `hup-v29`.
+
 ## v2.24 — Echte foto's (Wikimedia) bij bekende uitjes
 - De detailkaart en lijst-thumbnails tonen nu een **echte foto** bij uitjes waar
   een vrij te gebruiken Wikimedia-foto van bestaat (start: 12 bekende attracties
